@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+
 	import { fade } from 'svelte/transition';
 	import { onMount } from 'svelte';
 
