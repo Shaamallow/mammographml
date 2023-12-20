@@ -39,9 +39,9 @@
 						tabIndex={0}
 						class="menu menu-sm p-3 dropdown-content bg-neutral/70 backdrop-blur-md rounded-box mt-3"
 					>
-						<li class="grid"><a href="/about">Visu1</a></li>
-						<li class="grid"><a href="/projects">Visu2</a></li>
-						<li class="grid"><a href="/blog">Visu3</a></li>
+						<li class="grid"><a href="/dataset">Dataset</a></li>
+						<li class="grid"><a href="/features">Features</a></li>
+						<li class="grid"><a href="/models">Models</a></li>
 					</ul>
 				</div>
 

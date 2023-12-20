@@ -1,15 +1,14 @@
 <script lang="ts">
-	import type { PageData } from './$types';
 	import { fade } from 'svelte/transition';
 	import { onMount } from 'svelte';
-
-	export let data: PageData;
+	import * as d3 from 'd3';
 
 	let loaded = false;
-	let mindmap_svg: SVGElement;
+	let divMindMap: HTMLDivElement;
+	let divFeatures: HTMLDivElement;
 
 	onMount(() => {
-		loaded = true;
+		loaded = true; // this is for the fade transition
 	});
 </script>
 
@@ -48,16 +47,17 @@
 			>
 				MIND MAP
 			</h1>
-			<svg bind:this={mindmap_svg}></svg>
+			<div bind:this={divMindMap} class="mx-auto"></div>
 		</div>
 
 		<div class="divider my-20" />
 
-		<div class="mx-10 flex flex-wrap justify-center items-center gap-10">
-			<div class="w-[50rem] bg-red-100 h-[20rem]">Feature</div>
-			<div class="w-[50rem] bg-red-100 h-[20rem]">Feature</div>
-			<div class="w-[50rem] bg-red-100 h-[20rem]">Feature</div>
-			<div class="w-[50rem] bg-red-100 h-[20rem]">Feature</div>
+		<div
+			class="mx-10 flex flex-wrap justify-center items-center gap-10"
+			bind:this={divFeatures}
+			id="features_div"
+		>
+			<div class="w-[50rem] bg-red-100 h-[20rem]"></div>
 		</div>
 
 		<!-- PROJECTS FROM HERE -->
