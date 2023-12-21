@@ -149,14 +149,27 @@
 		width = width - margin.left - margin.right;
 		height = height - margin.top - margin.bottom;
 
-		let bandWidth = 20;
-
 		let keys = Object.keys(dataOriginal[0]);
+
+		let interestingKeys = [
+			'perimeter_mean',
+			'radius_worst',
+			'concave points_mean',
+			'perimeter_worst',
+			'concave points_worst',
+			'smoothness_se',
+			'fractal_dimension_mean',
+			'texture_se',
+			'symmetry_se',
+			'fractal_dimension_se'
+		];
+
+		keys = keys.filter((key) => interestingKeys.includes(key));
 		// for all keys except 'id' and 'diagnosis' draw a density plot
 		// with the corresponding data
 		// id and diagnosis are the first two keys
 
-		for (let i = 2; i < keys.length; i++) {
+		for (let i = 0; i < keys.length; i++) {
 			let key = keys[i];
 			let min_value = d3.min(dataOriginal, (d: any) => d[key] as number) as number;
 			let max_value = d3.max(dataOriginal, (d: any) => d[key] as number) as number;
@@ -168,7 +181,9 @@
 				.domain([min_value, max_value])
 				.thresholds(xScale.ticks(50));
 
-			let kde = kernelDensityEstimator(kernelEpanechnikov(7), xScale.ticks(50));
+			let stdBin = d3.deviation(dataOriginal, (d: any) => d[key]) as number;
+
+			let kde = kernelDensityEstimator(kernelEpanechnikov(stdBin / 3), xScale.ticks(50));
 			let densityBegnin = kde(
 				dataOriginal.filter((d: any) => d.diagnosis == 0).map((d: any) => d[key])
 			);
@@ -613,7 +628,7 @@
 
 		let yScale = d3
 			.scaleBand()
-			.range([margin + height * 0.1, height * 0.85 - margin])
+			.range([margin + height * 0.15, height * 0.85 - margin])
 			.domain(d3.range(nRows) as any);
 
 		const svg = d3
@@ -684,6 +699,46 @@
 			.text('Correlation Map')
 			.style('text-anchor', 'middle')
 			.attr('class', 'font-display text-3xl font-bold fill-current');
+
+		let legendScale = d3
+			.scaleLinear()
+			.domain([min_value, max_value])
+			.range([width * 0.4, width * 0.9]);
+		// add legend with rectangles of colors and text
+		svg
+			.append('g')
+			.attr('id', 'legend')
+			.selectAll('rect')
+			.data(d3.range(min_value, max_value, (max_value - min_value) / 100))
+			.enter()
+			.append('rect')
+			.attr('x', (d, i) => legendScale(d) as number)
+			.attr('y', height * 0.11)
+			.attr('width', (d: any) => legendScale(d + (max_value - min_value) / 100) - legendScale(d)) // fit up to the next rect
+			.attr('height', yScale.bandwidth())
+			.style('fill', (d: any) => colorScale(d));
+
+		// add legend scale with ticks and make it reach the end
+		svg
+			.append('g')
+			.attr('id', 'legend-scale')
+			.attr('transform', `translate(0, ${height * 0.11 + yScale.bandwidth()})`)
+			.call(
+				d3
+					.axisBottom(legendScale)
+					.tickValues(d3.range(min_value, max_value * 1.1, (max_value - min_value) / 10))
+			)
+			.selectAll('text')
+			.attr('class', 'fill-current');
+
+		// Add legend title
+		svg
+			.append('text')
+			.attr('x', margin + width * 0.22)
+			.attr('y', height * 0.11 + yScale.bandwidth())
+			.text('Correlation scale :')
+			.attr('class', 'fill-current md:text-xl text-xs')
+			.style('text-anchor', 'middle');
 	}
 </script>
 
