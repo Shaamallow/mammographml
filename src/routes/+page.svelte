@@ -3,17 +3,101 @@
 
 	import { fade } from 'svelte/transition';
 	import { onMount } from 'svelte';
+	import * as d3 from 'd3';
+	import {geoNaturalEarth1} from 'd3-geo';
 
 	let loaded = false;
-	let map_svg: SVGElement;
+	let divMap: HTMLElement;
+
+	let deathData: any;
 
 	onMount(() => {
 		loaded = true;
+		function preprocess_death_data(dataset: any){
+			let data_preprocessed: any;
+			data_preprocessed = [];
+			for (let i = 0; i< dataset.length; i++){
+				if (dataset[i]["Year"] == "2016"){
+					data_preprocessed.push({
+						Country: dataset[i]["Country"],
+						Deaths: parseFloat(dataset[i]["Deaths"])
+					});
+				}
+			}
+			data_preprocessed.push({
+				Country: "Republic of the Congo",
+				Deaths: parseFloat(data_preprocessed[47]["Deaths"])
+			});
+			data_preprocessed.push({
+				Country: "Democratic Republic of the Congo",
+				Deaths: parseFloat(data_preprocessed[54]["Deaths"])
+			});
+			data_preprocessed.push({
+				Country: "Guinea Bissau",
+				Deaths: parseFloat(data_preprocessed[84]["Deaths"])
+			});
+			data_preprocessed.push({
+				Country: "Republic of Serbia",
+				Deaths: parseFloat(data_preprocessed[168]["Deaths"])
+			});
+			data_preprocessed.push({
+				Country: "United Republic of Tanzania",
+				Deaths: parseFloat(data_preprocessed[194]["Deaths"])
+			});
+			data_preprocessed.push({
+				Country: "USA",
+				Deaths: parseFloat(data_preprocessed[208]["Deaths"])
+			});
+			
+			return data_preprocessed;
+		}
+		d3.csv('/breast_cancer_deaths.csv').then((data)=>{
+			deathData = preprocess_death_data(data);
+			console.log(deathData);
+			drawDeathMap(deathData);
+		});
 	});
+
+	function drawDeathMap(data: any){
+		let width = divMap.clientWidth;
+		let height = divMap.clientHeight;
+		const svg = d3.select(divMap).append('svg').attr('width', width).attr('height', height);
+		var path = d3.geoPath();
+		var projection = d3.geoNaturalEarth1()
+			.scale(width / 2 / Math.PI)
+			.translate([width / 2, height / 2])
+		var path = d3.geoPath()
+			.projection(projection);
+		const colorScaleWorld = d3.scaleOrdinal(d3.schemeReds[6]);
+
+		d3.json("http://enjalot.github.io/wwsd/data/world/world-110m.geojson").then((geoData:any) => {
+		// Bind data to the SVG and draw the countries
+		console.log(geoData);
+			svg.selectAll("path")
+				.data(geoData.features)
+				.enter().append("path")
+				.attr("d", path)
+				.attr("fill", (d: any) => {
+					// Find the corresponding data for each country
+					const countryData = data.find((country: any) => country.Country == d.properties.name);
+					// Use the color scale to determine the fill color based on death data
+					console.log(countryData ? countryData.Deaths : d.properties.name);
+					return countryData ? colorScaleWorld(countryData.Deaths) : "#ccc";
+				})
+				// .attr("fill","white")
+				.attr("stroke", "#fff")
+				.attr("stroke-width", 0.5)
+				.append("title")
+				.text((d: any) => d.properties.name);
+
+			});
+			
+	}
 </script>
 
 <svelte:head>
 	<title>Cancer</title>
+	<script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
 </svelte:head>
 
 {#if loaded}
@@ -134,7 +218,7 @@
 			>
 				La map ici
 			</h1>
-			<svg bind:this={map_svg}></svg>
+			<div class="w-full h-[30rem]" bind:this={divMap}></div>
 		</div>
 
 		<div class="divider my-20" />
