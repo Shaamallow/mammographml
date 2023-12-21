@@ -108,6 +108,25 @@
 		drawTSNE();
 	}
 
+	function kernelDensityEstimator(kernel: any, X: any) {
+		return function (V: any) {
+			return X.map(function (x: any) {
+				return [
+					x,
+					d3.mean(V, function (v: any) {
+						return kernel(x - v);
+					})
+				];
+			});
+		};
+	}
+
+	function kernelEpanechnikov(k: any) {
+		return function (v: any) {
+			return Math.abs((v /= k)) <= 1 ? (0.75 * (1 - v * v)) / k : 0;
+		};
+	}
+
 	function drawFeatures(): void {
 		// Create a density Plot for each feature
 		// get the width of parent element
@@ -119,8 +138,16 @@
 			width = divFeatures.clientWidth * 0.8;
 		}
 
-		let height = 150;
-		let margin = 5;
+		let height = 200;
+		let margin = {
+			left: 50,
+			right: 50,
+			top: 50,
+			bottom: 30
+		};
+
+		width = width - margin.left - margin.right;
+		height = height - margin.top - margin.bottom;
 
 		let bandWidth = 20;
 
@@ -133,14 +160,44 @@
 			let key = keys[i];
 			let min_value = d3.min(dataOriginal, (d: any) => d[key] as number) as number;
 			let max_value = d3.max(dataOriginal, (d: any) => d[key] as number) as number;
-			let xScale = d3
-				.scaleLinear()
+			let xScale = d3.scaleLinear().domain([min_value, max_value]).range([0, width]);
+
+			let histogram = d3
+				.histogram()
+				.value((d: any) => d[key])
 				.domain([min_value, max_value])
-				.range([margin, width - margin]);
-			let yScale = d3
-				.scaleLinear()
-				.domain([0, 1])
-				.range([height / 3 - bandWidth, height / 3 + bandWidth]);
+				.thresholds(xScale.ticks(50));
+
+			let kde = kernelDensityEstimator(kernelEpanechnikov(7), xScale.ticks(50));
+			let densityBegnin = kde(
+				dataOriginal.filter((d: any) => d.diagnosis == 0).map((d: any) => d[key])
+			);
+			let densityMalignant = kde(
+				dataOriginal.filter((d: any) => d.diagnosis == 1).map((d: any) => d[key])
+			);
+
+			densityBegnin[0][1] = 0;
+			densityBegnin[densityBegnin.length - 1][1] = 0;
+
+			densityMalignant[0][1] = 0;
+			densityMalignant[densityMalignant.length - 1][1] = 0;
+
+			let maxDensityBenign = d3.max(densityBegnin, (d: any) => d[1]);
+			let maxDensityMalignant = d3.max(densityMalignant, (d: any) => d[1]);
+			//@ts-ignore
+			let maxDensity = Math.max(maxDensityBenign, maxDensityMalignant);
+
+			let yScaleDensity = d3.scaleLinear().domain([0, maxDensity]).range([height, 0]);
+
+			let binsBegnin = histogram(dataOriginal.filter((d: any) => d.diagnosis == 0));
+			let binsMalignant = histogram(dataOriginal.filter((d: any) => d.diagnosis == 1));
+
+			let maxLen = Math.max(
+				d3.max(binsBegnin, (d: any) => d.length),
+				d3.max(binsMalignant, (d: any) => d.length)
+			);
+
+			let yScale = d3.scaleLinear().range([height, 0]).domain([0, maxLen]);
 
 			// append new div for each feature
 			d3.select(divFeatures)
@@ -154,30 +211,99 @@
 
 			d3.select(currentDiv).append('h1').text(key).attr('class', 'font-display text-2xl font-bold');
 
-			let svg = d3.select(currentDiv).append('svg').attr('width', width).attr('height', height);
-
-			svg
+			let svg = d3
+				.select(currentDiv)
+				.append('svg')
+				.attr('width', width + margin.left + margin.right)
+				.attr('height', height + margin.top + margin.bottom)
 				.append('g')
-				.selectAll('circle')
-				.data(dataOriginal)
-				.enter()
-				.append('circle')
-				.attr('cx', (d: any) => xScale(d[key]))
-				.attr('cy', (d: any) => yScale(Math.random()))
-				.attr('r', 5)
-				.attr('class', (d: any) => (d.diagnosis == 0 ? 'fill-primary' : 'fill-error'))
-				.attr('fill-opacity', 0.3);
+				.attr('transform', `translate(${margin.left}, ${margin.top})`);
+
 			// X axis
 			svg
 				.append('g')
-				.attr('transform', `translate(0, ${height / 3 + bandWidth * 1.5})`)
-				.call(d3.axisBottom(xScale))
-				.append('text')
-				.attr('x', width / 2)
-				.attr('y', height / 2 - bandWidth * 1.5)
-				.attr('text-anchor', 'middle')
-				.text(key)
-				.attr('class', 'fill-current font-display text-xl');
+				.attr('id', `${key}-x_axis`)
+				.attr('transform', `translate(0, ${height})`)
+				.call(d3.axisBottom(xScale));
+
+			// Y axis
+			svg.append('g').attr('id', `${key}-y_axis`).call(d3.axisLeft(yScale));
+
+			// kde for benign
+			svg
+				.append('g')
+				.attr('id', `${key}-density-begnin`)
+				.append('path')
+				.datum(densityBegnin)
+				.attr('class', 'fill-primary')
+				.attr('opacity', '.2')
+				.attr('stroke', '#000')
+				.attr('stroke-width', 1)
+				.attr('stroke-linejoin', 'round')
+				.attr(
+					'd',
+					d3
+						.line()
+						.curve(d3.curveBasis)
+						.x(function (d) {
+							return xScale(d[0]);
+						})
+						.y(function (d) {
+							return yScaleDensity(d[1]);
+						})
+				);
+
+			// kde for malignant
+			svg
+				.append('g')
+				.attr('id', `${key}-density-malignant`)
+				.append('path')
+				.datum(densityMalignant)
+				.attr('class', 'fill-error')
+				.attr('opacity', '.2')
+				.attr('stroke', '#000')
+				.attr('stroke-width', 1)
+				.attr('stroke-linejoin', 'round')
+				.attr(
+					'd',
+					d3
+						.line()
+						.curve(d3.curveBasis)
+						.x(function (d) {
+							return xScale(d[0]);
+						})
+						.y(function (d) {
+							return yScaleDensity(d[1]);
+						})
+				);
+			// append the bar rectangles to the svg element
+			svg
+				.append('g')
+				.attr('id', `${key}-begnin`)
+				.selectAll('rect')
+				.data(binsBegnin)
+				.enter()
+				.append('rect')
+				.attr('x', 1)
+				.attr('transform', (d: any) => `translate(${xScale(d.x0)}, ${yScale(d.length)})`)
+				.attr('width', (d: any) => xScale(d.x1) - xScale(d.x0) - 1)
+				.attr('height', (d: any) => height - yScale(d.length))
+				.attr('class', 'fill-primary')
+				.attr('fill-opacity', 0.5);
+
+			svg
+				.append('g')
+				.attr('id', `${key}-malignant`)
+				.selectAll('rect')
+				.data(binsMalignant)
+				.enter()
+				.append('rect')
+				.attr('x', 1)
+				.attr('transform', (d: any) => `translate(${xScale(d.x0)}, ${yScale(d.length)})`)
+				.attr('width', (d: any) => xScale(d.x1) - xScale(d.x0) - 1)
+				.attr('height', (d: any) => height - yScale(d.length))
+				.attr('class', 'fill-error')
+				.attr('fill-opacity', 0.5);
 		}
 	}
 	function drawPCA(): void {
