@@ -38,6 +38,13 @@
 			console.log('data_original');
 			// Parse the values to float
 			dataOriginal = data.map(parseValuesToFloat);
+
+			// remove 1st column
+			dataOriginal.forEach((row: any) => {
+				delete row[''];
+			});
+
+			drawFeatures();
 		});
 		d3.csv('/dataset_pca.csv').then((data) => {
 			console.log('data_pca loaded');
@@ -87,13 +94,12 @@
 	});
 
 	function draw(): void {
-		console.log('draw');
-
 		// empty the corresponding svg elements
 		//d3.select(divFeatures).html(null);
 		d3.select(divPCA).html(null);
 		d3.select(divCorrelationMap).html(null);
 		d3.select(divTSNE).html(null);
+		d3.select(divFeatures).html(null);
 
 		// call the draw functions to fill the svg elements
 		drawFeatures();
@@ -102,7 +108,78 @@
 		drawTSNE();
 	}
 
-	function drawFeatures(): void {}
+	function drawFeatures(): void {
+		// Create a density Plot for each feature
+		// get the width of parent element
+
+		let width = 0;
+		if (window.innerWidth < 640) {
+			width = divFeatures.clientWidth;
+		} else {
+			width = divFeatures.clientWidth * 0.8;
+		}
+
+		let height = 150;
+		let margin = 5;
+
+		let bandWidth = 20;
+
+		let keys = Object.keys(dataOriginal[0]);
+		// for all keys except 'id' and 'diagnosis' draw a density plot
+		// with the corresponding data
+		// id and diagnosis are the first two keys
+
+		for (let i = 2; i < keys.length; i++) {
+			let key = keys[i];
+			let min_value = d3.min(dataOriginal, (d: any) => d[key] as number) as number;
+			let max_value = d3.max(dataOriginal, (d: any) => d[key] as number) as number;
+			let xScale = d3
+				.scaleLinear()
+				.domain([min_value, max_value])
+				.range([margin, width - margin]);
+			let yScale = d3
+				.scaleLinear()
+				.domain([0, 1])
+				.range([height / 3 - bandWidth, height / 3 + bandWidth]);
+
+			// append new div for each feature
+			d3.select(divFeatures)
+				.append('div')
+				.attr('id', key)
+				.attr('class', 'flex justify-center flex-col lg:flex-row items-center gap-5');
+
+			// select the last div appended
+			// and append a new svg
+			let currentDiv = d3.select(`#${key}`).node() as HTMLDivElement;
+
+			d3.select(currentDiv).append('h1').text(key).attr('class', 'font-display text-2xl font-bold');
+
+			let svg = d3.select(currentDiv).append('svg').attr('width', width).attr('height', height);
+
+			svg
+				.append('g')
+				.selectAll('circle')
+				.data(dataOriginal)
+				.enter()
+				.append('circle')
+				.attr('cx', (d: any) => xScale(d[key]))
+				.attr('cy', (d: any) => yScale(Math.random()))
+				.attr('r', 5)
+				.attr('class', (d: any) => (d.diagnosis == 0 ? 'fill-primary' : 'fill-error'))
+				.attr('fill-opacity', 0.3);
+			// X axis
+			svg
+				.append('g')
+				.attr('transform', `translate(0, ${height / 3 + bandWidth * 1.5})`)
+				.call(d3.axisBottom(xScale))
+				.append('text')
+				.attr('x', width / 2)
+				.attr('y', height / 2 - bandWidth * 1.5)
+				.attr('text-anchor', 'middle')
+				.text(key)
+				.attr('class', 'fill-current font-display text-xl');
+		}
+	}
 	function drawPCA(): void {
 		// PCA function
 
@@ -161,7 +238,7 @@
 			.text('Principal Component 2');
 
 		// Add dots
-		svg
+		let circles = svg
 			.append('g')
 			.selectAll('circle')
 			.data(dataPCA)
@@ -170,10 +247,36 @@
 			.attr('cx', (d: any) => xScale(d.PC1))
 			.attr('cy', (d: any) => yScale(d.PC2))
 			.attr('r', 5)
-			.attr('class', (d: any) => (d.diagnosis == 0 ? 'fill-primary' : 'fill-error'))
+			.attr('class', (d: any) => (d.diagnosis == 0 ? 'fill-primary ' : 'fill-error'))
 			.attr('fill-opacity', 0.3);
 
 		// add legend text on the right using a small circle and a text
+		circles
+			.on('mouseover', function (event: any, d: any) {
+				let circlesWithSameDiagnostic = circles.filter((d2: any) => d2.diagnosis == d.diagnosis);
+
+				circlesWithSameDiagnostic
+					.attr('fill-opacity', 1)
+					.attr('stroke', 'black')
+					.attr('stroke-width', 1);
+
+				d3.select(this).attr('r', 10);
+
+				svg
+					.append('text')
+					.attr('x', xScale(d.PC1) + 10)
+					.attr('y', yScale(d.PC2) - 10)
+					.text(d.id)
+					.attr('class', 'fill-current')
+					.attr('id', 'tooltip');
+			})
+			.on('mouseout', function (event: any, d: any) {
+				let circlesWithSameDiagnostic = circles.filter((d2: any) => d2.diagnosis == d.diagnosis);
+
+				circlesWithSameDiagnostic.attr('fill-opacity', 0.3).attr('stroke', 'none');
+				d3.select(this).attr('r', 5);
+				svg.select('#tooltip').remove();
+			});
 
 		svg
 			.append('circle')
@@ -271,7 +374,7 @@
 			.text('t-SNE Component 2');
 
 		// Add dots
-		svg
+		let circles = svg
 			.append('g')
 			.selectAll('circle')
 			.data(dataTSNE)
@@ -282,6 +385,32 @@
 			.attr('r', 5)
 			.attr('class', (d: any) => (d.diagnosis == 0 ? 'fill-primary' : 'fill-error'))
 			.attr('fill-opacity', 0.3);
+
+		circles.on('mouseover', function (event: any, d: any) {
+			let circlesWithSameDiagnostic = circles.filter((d2: any) => d2.diagnosis == d.diagnosis);
+
+			circlesWithSameDiagnostic
+				.attr('fill-opacity', 1)
+				.attr('stroke', 'black')
+				.attr('stroke-width', 1);
+
+			d3.select(this).attr('r', 10);
+
+			svg
+				.append('text')
+				.attr('x', xScale(d.x) + 10)
+				.attr('y', yScale(d.y) - 10)
+				.text(d.id)
+				.attr('class', 'fill-current')
+				.attr('id', 'tooltip');
+		});
+
+		circles.on('mouseout', function (event: any, d: any) {
+			let circlesWithSameDiagnostic = circles.filter((d2: any) => d2.diagnosis == d.diagnosis);
+			circlesWithSameDiagnostic.attr('fill-opacity', 0.3).attr('stroke', 'none');
+			d3.select(this).attr('r', 5);
+			svg.select('#tooltip').remove();
+		});
 
 		// add legend text on the right using a small circle and a text
 
@@ -373,7 +502,7 @@
 		// Now add the squares for the correlation map
 		// each row of the dataset is a row of squares
 		// each square is a rect element
-		svg
+		let rectangles = svg
 			.selectAll()
 			.data(
 				dataCorrelationMap.flatMap((row: any, i: any) =>
@@ -387,6 +516,20 @@
 			.attr('width', xScale.bandwidth())
 			.attr('height', yScale.bandwidth())
 			.style('fill', (d: any) => colorScale(d.value));
+
+		rectangles.on('mouseover', function (event: any, d: any) {
+			svg
+				.append('text')
+				.attr('x', (xScale(d.j) as number) + xScale.bandwidth() / 2)
+				.attr('y', (yScale(d.i) as number) + yScale.bandwidth() / 2)
+				.text(d.value.toFixed(2))
+				.attr('class', 'fill-current')
+				.attr('id', 'tooltip');
+		});
+
+		rectangles.on('mouseout', function (event: any, d: any) {
+			d3.select('#tooltip').remove();
+		});
 
 		// Add X axis
 		svg
@@ -428,7 +571,7 @@
 			<div
 				class="flex flex-col items-center justify-stretch group max-w-3xl mx-auto overflow-visible"
 			>
-				<div class="md:flex block justify-center items-center md:mt-3 mb-6">
+				<div class="md:flex block justify-center items-center mdv:mt-3 mb-6">
 					<h1
 						class="text-center font-display text-5xl md:text-7xl font-bold bg-clip-text bg-secondary anim-gradient pb-3"
 					>
@@ -462,19 +605,9 @@
 		<div class="divider my-20" />
 
 		<div
-			class="mx-10 flex flex-col justify-center items-center gap-10"
+			class="md:mx-10 mx-2 flex flex-col justify-center items-center gap-10"
 			bind:this={divFeatures}
-			id="features_div"
-		>
-			<div class="flex justify-center items-center gap-5">
-				<h1 class="text-center font-display text-3xl">Feature 1</h1>
-				<svg class="w-[50rem] bg-secondary h-[20rem]"></svg>
-			</div>
-			<div class="flex justify-center items-center gap-5">
-				<h1 class="text-center font-display text-3xl">Feature 2</h1>
-				<svg class="w-[50rem] bg-secondary h-[20rem]"></svg>
-			</div>
-		</div>
+		></div>
 
 		<div class="divider m-10" />
 	</div>
