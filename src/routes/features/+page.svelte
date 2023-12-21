@@ -8,7 +8,8 @@
 	let divCorrelationMap: HTMLDivElement;
 	let divTSNE: HTMLDivElement;
 
-	let divFeatures: HTMLDivElement;
+	let divFeaturesMost: HTMLDivElement;
+	let divFeaturesLeast: HTMLDivElement;
 
 	let dataOriginal: any;
 	let dataPCA: any;
@@ -99,7 +100,8 @@
 		d3.select(divPCA).html(null);
 		d3.select(divCorrelationMap).html(null);
 		d3.select(divTSNE).html(null);
-		d3.select(divFeatures).html(null);
+		d3.select(divFeaturesMost).html(null);
+		d3.select(divFeaturesLeast).html(null);
 
 		// call the draw functions to fill the svg elements
 		drawFeatures();
@@ -133,9 +135,9 @@
 
 		let width = 0;
 		if (window.innerWidth < 640) {
-			width = divFeatures.clientWidth;
+			width = divFeaturesMost.clientWidth;
 		} else {
-			width = divFeatures.clientWidth * 0.8;
+			width = divFeaturesMost.clientWidth * 0.8;
 		}
 
 		let height = 200;
@@ -151,12 +153,15 @@
 
 		let keys = Object.keys(dataOriginal[0]);
 
-		let interestingKeys = [
+		let interestingKeysMost = [
 			'perimeter_mean',
 			'radius_worst',
-			'concave points_mean',
+			'concave_points_mean',
 			'perimeter_worst',
-			'concave points_worst',
+			'concave_points_worst'
+		];
+
+		let interestingKeysLeast = [
 			'smoothness_se',
 			'fractal_dimension_mean',
 			'texture_se',
@@ -164,7 +169,6 @@
 			'fractal_dimension_se'
 		];
 
-		keys = keys.filter((key) => interestingKeys.includes(key));
 		// for all keys except 'id' and 'diagnosis' draw a density plot
 		// with the corresponding data
 		// id and diagnosis are the first two keys
@@ -215,7 +219,20 @@
 			let yScale = d3.scaleLinear().range([height, 0]).domain([0, maxLen]);
 
 			// append new div for each feature
-			d3.select(divFeatures)
+
+			// check if key is in interestingKeysMost or interestingKeysLeast
+			// and append to the corresponding div
+			let correctDiv = null;
+
+			if (interestingKeysMost.includes(key)) {
+				correctDiv = divFeaturesMost;
+			} else if (interestingKeysLeast.includes(key)) {
+				correctDiv = divFeaturesLeast;
+			} else {
+				continue;
+			}
+
+			d3.select(correctDiv)
 				.append('div')
 				.attr('id', key)
 				.attr('class', 'flex justify-center flex-col lg:flex-row items-center gap-5');
@@ -224,7 +241,12 @@
 			// and append a new svg
 			let currentDiv = d3.select(`#${key}`).node() as HTMLDivElement;
 
-			d3.select(currentDiv).append('h1').text(key).attr('class', 'font-display text-2xl font-bold');
+			let keyDisplay = key.replaceAll('_', ' ');
+
+			d3.select(currentDiv)
+				.append('h1')
+				.text(keyDisplay)
+				.attr('class', 'font-display text-2xl font-bold text-center');
 
 			let svg = d3
 				.select(currentDiv)
@@ -292,7 +314,7 @@
 						})
 				);
 			// append the bar rectangles to the svg element
-			svg
+			let rectBegnin = svg
 				.append('g')
 				.attr('id', `${key}-begnin`)
 				.selectAll('rect')
@@ -306,7 +328,7 @@
 				.attr('class', 'fill-primary')
 				.attr('fill-opacity', 0.5);
 
-			svg
+			let rectMalignant = svg
 				.append('g')
 				.attr('id', `${key}-malignant`)
 				.selectAll('rect')
@@ -319,6 +341,94 @@
 				.attr('height', (d: any) => height - yScale(d.length))
 				.attr('class', 'fill-error')
 				.attr('fill-opacity', 0.5);
+
+			// add legends for Being and Malignant
+			// circles on top right corner with the text
+
+			svg
+				.append('g')
+				.attr('id', `${key}-legend`)
+				.append('circle')
+				.attr('cx', width - margin.right * 3)
+				.attr('cy', 0)
+				.attr('r', 5)
+				.attr('class', 'fill-primary');
+
+			svg
+				.select(`#${key}-legend`)
+				.append('text')
+				.attr('x', width - margin.right * 3 + 10)
+				.attr('y', 5)
+				.text('Begnin')
+				.attr('class', 'fill-current');
+
+			svg
+				.select(`#${key}-legend`)
+				.append('circle')
+				.attr('cx', width - margin.right * 3)
+				.attr('cy', margin.top / 2)
+				.attr('r', 5)
+				.attr('class', 'fill-error');
+
+			svg
+				.select(`#${key}-legend`)
+				.append('text')
+				.attr('x', width - margin.right * 3 + 10)
+				.attr('y', margin.top / 2 + 5)
+				.text('Malignant')
+				.attr('class', 'fill-current');
+
+			// add hover effect
+
+			rectBegnin
+				.on('mouseover', function (event: any, d: any) {
+					d3.select(this).attr('fill-opacity', 1);
+					let rectWithSameX = rectMalignant.filter((d2: any) => d2.x0 == d.x0);
+					rectWithSameX.attr('fill-opacity', 0.2);
+
+					// add border to the corresponding density plot
+					svg.select(`#${key}-density-begnin`).select('path').attr('stroke-width', 3);
+
+					svg
+						.append('text')
+						.attr('x', xScale(d.x0) + 10)
+						.attr('y', yScale(d.length) - 10)
+						.text(d.length)
+						.attr('class', 'fill-current')
+						.attr('id', 'tooltip');
+				})
+				.on('mouseout', function (event: any, d: any) {
+					d3.select(this).attr('fill-opacity', 0.5);
+					let rectWithSameX = rectMalignant.filter((d2: any) => d2.x0 == d.x0);
+					rectWithSameX.attr('fill-opacity', 0.5);
+
+					svg.select(`#${key}-density-begnin`).select('path').attr('stroke-width', 1);
+
+					svg.select('#tooltip').remove();
+				});
+
+			rectMalignant
+				.on('mouseover', function (event: any, d: any) {
+					d3.select(this).attr('fill-opacity', 1);
+					let rectWithSameX = rectBegnin.filter((d2: any) => d2.x0 == d.x0);
+					rectWithSameX.attr('fill-opacity', 0.2);
+					// add border to the corresponding density plot
+					svg.select(`#${key}-density-malignant`).select('path').attr('stroke-width', 3);
+					svg
+						.append('text')
+						.attr('x', xScale(d.x0) + 10)
+						.attr('y', yScale(d.length) - 10)
+						.text(d.length)
+						.attr('class', 'fill-current')
+						.attr('id', 'tooltip');
+				})
+				.on('mouseout', function (event: any, d: any) {
+					d3.select(this).attr('fill-opacity', 0.5);
+					let rectWithSameX = rectBegnin.filter((d2: any) => d2.x0 == d.x0);
+					rectWithSameX.attr('fill-opacity', 0.5);
+					svg.select(`#${key}-density-malignant`).select('path').attr('stroke-width', 1);
+					svg.select('#tooltip').remove();
+				});
 		}
 	}
 	function drawPCA(): void {
@@ -785,10 +895,18 @@
 
 		<div class="divider my-20" />
 
-		<div
-			class="md:mx-10 mx-2 flex flex-col justify-center items-center gap-10"
-			bind:this={divFeatures}
-		></div>
+		<div>
+			<h1 class="mx-auto text-center text-3xl mb-10">Top 5 most correlated features</h1>
+			<div
+				class="md:mx-10 mx-2 flex flex-col justify-center items-center gap-10"
+				bind:this={divFeaturesMost}
+			></div>
+			<h1 class="mx-auto text-center text-3xl my-8">Top 5 least correlated features</h1>
+			<div
+				class="md:mx-10 mx-2 flex flex-col justify-center items-center gap-10"
+				bind:this={divFeaturesLeast}
+			></div>
+		</div>
 
 		<div class="divider m-10" />
 	</div>
