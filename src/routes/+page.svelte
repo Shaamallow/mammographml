@@ -201,101 +201,141 @@
 					<h1
 						class="text-center font-display text-5xl md:text-7xl font-bold bg-clip-text bg-secondary anim-gradient pb-3"
 					>
-						Cancer Visualisation
+						Mammograph ML
 					</h1>
 				</div>
 				<div class="flex justify-center items-center mt-3 mb-6">
-					<div class="font-display text-lg text-center">Breast Cancer Wisconsin Dataset</div>
+					<div class="font-display text-lg text-center italic">
+						Machine Learning and Features analysis on breast cancer cells observations
+					</div>
 				</div>
 				<div class="text-center max-w-md">
-					Analyze 33 features from 569 observations of tumors describing the characteristics of
-					their nuclei cells.
+					Using the breast Cancer Wisconsin Dataset, we analyzed 33 features on from 569
+					observations of tumors describing the characteristics of their nuclei cells.
 				</div>
 			</div>
 		</div>
 
 		<!-- Card for cells -->
-		<div class="mx-10">
-			<div class="mx-auto max-w-[50rem]">
-				<div class="card md:card-side bg-neutral shadow-xl">
-					<figure>
-						<img src="/cells_wallpaper.jpeg" alt="cell" />
-					</figure>
-					<div class="card-body">
-						<h2 class="card-title">le CANCER TUE</h2>
-						<p>Voila des infos sur pourquoi le cancer c'est mal</p>
-						<div class="card-actions justify-end">
-							<a href="#map-div" class="btn btn-primary">Voir plus</a>
-						</div>
+		<div class="mx-auto p-2 md:max-w-[60rem]">
+			<div class="card bg-neutral shadow-xl">
+				<figure>
+					<img src="/cells_wallpaper.jpg" alt="cell" />
+				</figure>
+				<div class="card-body">
+					<h2 class="card-title">World Global disease</h2>
+					<p class="text-justify">
+						Breast cancer is characterized by the uncontrolled growth of certain cell types in the
+						breast tissue. Cells may eventually spread out in other parts of the body resulting in
+						deadly metastasis. In 2020, <strong>2.3</strong> million women were diagnosed with
+						breast cancer, and <strong>685,000 died</strong> from this condition globally. It is the
+						most prevalent cancer in the world. Roughly half of all breast cancers occur in women with
+						no specific risk factor other than age and sex. Men can also suffer from this condition,
+						around 0.5-1%
+					</p>
+					<div class="card-actions justify-end">
+						<input
+							type="button"
+							value="See More"
+							class="btn btn-error"
+							on:click={() => {
+								window.scrollTo({
+									//@ts-ignore
+									top: document.getElementById('map-div').offsetTop,
+									behavior: 'smooth'
+								});
+							}}
+						/>
 					</div>
 				</div>
 			</div>
 		</div>
 
-		<div class="divider my-20" />
-
-		<div class="mx-10 flex justify-center flex-col">
+		<div class="m-10 mb-20 flex justify-center flex-col">
 			<h1
 				class="font-display text-xl md:text-3xl font-bold bg-clip-text bg-secondary mb-3 text-center"
 			>
-				Tout plein de stats la
+				Statistics
 			</h1>
 			<div class="flex justify-center">
 				<div class="stats shadow bg-neutral">
 					<div class="stat">
+						<div class="stat-figure text-error">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="icon icon-tabler icon-tabler-grave-2"
+								width="44"
+								height="44"
+								viewBox="0 0 24 24"
+								stroke-width="1.5"
+								stroke="currentColor"
+								fill="none"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<path stroke="none" d="M0 0h24v24H0z" fill="none" />
+								<path d="M7 16.17v-9.17a3 3 0 0 1 3 -3h4a3 3 0 0 1 3 3v9.171" />
+								<path d="M12 7v5" />
+								<path d="M10 9h4" />
+								<path d="M5 21v-2a3 3 0 0 1 3 -3h8a3 3 0 0 1 3 3v2h-14z" />
+							</svg>
+						</div>
+						<div class="stat-title">Total Deaths</div>
+						<div class="stat-value text-error">685,000</div>
+						<div class="stat-desc">in 2020</div>
+					</div>
+
+					<div class="stat">
+						<div class="stat-figure text-secondary">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="icon icon-tabler icon-tabler-building-hospital"
+								width="44"
+								height="44"
+								viewBox="0 0 24 24"
+								stroke-width="1.5"
+								stroke="currentColor"
+								fill="none"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<path stroke="none" d="M0 0h24v24H0z" fill="none" />
+								<path d="M3 21l18 0" />
+								<path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16" />
+								<path d="M9 21v-4a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v4" />
+								<path d="M10 9l4 0" />
+								<path d="M12 7l0 4" />
+							</svg>
+						</div>
+						<div class="stat-title">Total Sick</div>
+						<div class="stat-value text-secondary">2.3M</div>
+						<div class="stat-desc">in 2020</div>
+					</div>
+
+					<div class="stat">
 						<div class="stat-figure text-primary">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
-								fill="none"
+								class="icon icon-tabler icon-tabler-gender-male"
+								width="44"
+								height="44"
 								viewBox="0 0 24 24"
-								class="inline-block w-8 h-8 stroke-current"
-								><path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-								></path></svg
-							>
-						</div>
-						<div class="stat-title">Total Likes</div>
-						<div class="stat-value text-primary">25.6K</div>
-						<div class="stat-desc">21% more than last month</div>
-					</div>
-
-					<div class="stat">
-						<div class="stat-figure text-secondary">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
+								stroke-width="1.5"
+								stroke="currentColor"
 								fill="none"
-								viewBox="0 0 24 24"
-								class="inline-block w-8 h-8 stroke-current"
-								><path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M13 10V3L4 14h7v7l9-11h-7z"
-								></path></svg
+								stroke-linecap="round"
+								stroke-linejoin="round"
 							>
+								<path stroke="none" d="M0 0h24v24H0z" fill="none" />
+								<path d="M10 14m-5 0a5 5 0 1 0 10 0a5 5 0 1 0 -10 0" />
+								<path d="M19 5l-5.4 5.4" />
+								<path d="M19 5h-5" />
+								<path d="M19 5v5" />
+							</svg>
 						</div>
-						<div class="stat-title">Page Views</div>
-						<div class="stat-value text-secondary">2.6M</div>
-						<div class="stat-desc">21% more than last month</div>
-					</div>
-
-					<div class="stat">
-						<div class="stat-figure text-secondary">
-							<div class="avatar online">
-								<div class="w-16 rounded-full">
-									<img
-										src="https://media.licdn.com/dms/image/C4E03AQHb5eTI74CBAw/profile-displayphoto-shrink_800_800/0/1662392381197?e=1708560000&v=beta&t=0-R18GnswBDXGiT8C3WGNAsdshsXPOg_tzdSRqqXK9U"
-										alt="test"
-									/>
-								</div>
-							</div>
-						</div>
-						<div class="stat-value">86%</div>
-						<div class="stat-title">Tasks done</div>
-						<div class="stat-desc text-secondary">31 tasks remaining</div>
+						<div class="stat-title">Risk for men</div>
+						<div class="stat-value text-primary">0.5%</div>
+						<div class="stat-desc">and up to 1% !</div>
 					</div>
 				</div>
 			</div>
@@ -313,10 +353,10 @@
 			<div class="w-full" bind:this={divMap}></div>
 		</div>
 
-		<div class="divider my-20" />
+		<div class="divider my-10" />
 
 		<div class="w-full bg-base-100">
-			<div class="flex flex-col items-center justify-stretch py-5 group max-w-3xl mx-auto">
+			<div class="flex flex-col items-center justify-stretch group max-w-3xl mx-auto">
 				<h1 class="font-display text-3xl md:text-5xl font-bold bg-clip-text bg-secondary mb-3">
 					More on the website
 				</h1>
@@ -354,6 +394,14 @@
 					<img
 						src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/1920px-Python-logo-notext.svg.png"
 						alt="python"
+						class="mt-3 w-20"
+					/></a
+				>
+
+				<a href="https://d3js.org/" target="_blank">
+					<img
+						src="https://raw.githubusercontent.com/d3/d3-logo/master/d3.png"
+						alt="d3"
 						class="mt-3 w-20"
 					/></a
 				>
