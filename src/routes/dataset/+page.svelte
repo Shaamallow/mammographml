@@ -17,7 +17,7 @@
 </svelte:head>
 
 {#if loaded}
-	<div in:fade={{ duration: 400, delay: 100 }} class="mx-auto">
+	<div in:fade={{ duration: 400, delay: 100 }} class="mx-auto transition duration-500">
 		<div class="bg-base-100 py-10 px-4 mx-auto mb-10">
 			<div
 				class="flex flex-col items-center justify-stretch group max-w-3xl mx-auto overflow-visible"

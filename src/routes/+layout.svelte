@@ -90,33 +90,3 @@
 
 	<slot />
 </main>
-
-<style>
-	.anim-gradient {
-		background: linear-gradient(
-			300deg,
-			rgb(var(--ctp-red)),
-			rgb(var(--ctp-peach)),
-			rgb(var(--ctp-yellow)),
-			rgb(var(--ctp-green)),
-			rgb(var(--ctp-blue)),
-			rgb(var(--ctp-mauve))
-		);
-
-		background-size: 360% 360%;
-		animation: gradient-animation 24s ease infinite;
-	}
-
-	/*Keyframes*/
-	@keyframes gradient-animation {
-		0% {
-			background-position: 0% 50%;
-		}
-		50% {
-			background-position: 100% 50%;
-		}
-		100% {
-			background-position: 0% 50%;
-		}
-	}
-</style>

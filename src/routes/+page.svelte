@@ -17,7 +17,7 @@
 </svelte:head>
 
 {#if loaded}
-	<div in:fade={{ duration: 400, delay: 100 }} class="mx-auto">
+	<div in:fade={{ duration: 400, delay: 100 }} class="mx-auto transition duration-500">
 		<div class="bg-base-100 py-10 px-4 mx-auto mb-10">
 			<div
 				class="flex flex-col items-center justify-stretch group max-w-3xl mx-auto overflow-visible"
@@ -188,33 +188,3 @@
 		<div class="divider m-10" />
 	</div>
 {/if}
-
-<style>
-	.anim-gradient {
-		background-image: linear-gradient(
-			300deg,
-			rgb(var(--ctp-red)),
-			rgb(var(--ctp-peach)),
-			rgb(var(--ctp-yellow)),
-			rgb(var(--ctp-green)),
-			rgb(var(--ctp-blue)),
-			rgb(var(--ctp-mauve))
-		);
-
-		background-size: 360% 360%;
-		animation: gradient-animation 10s ease infinite;
-	}
-
-	/*Keyframes*/
-	@keyframes gradient-animation {
-		0% {
-			background-position: 0% 50%;
-		}
-		50% {
-			background-position: 100% 50%;
-		}
-		100% {
-			background-position: 0% 50%;
-		}
-	}
-</style>

@@ -1,0 +1,449 @@
+<script lang="ts">
+	import { fade } from 'svelte/transition';
+	import { onMount } from 'svelte';
+	import * as d3 from 'd3';
+
+	let loaded = false;
+	let divConfusionMatrix: HTMLDivElement;
+	let divROC: HTMLDivElement;
+	let divClassificationReport: HTMLDivElement;
+	let divDecisionBoundaries: HTMLDivElement;
+
+	let currentModel: string = 'No model selected';
+
+	// prediction data
+	let dataMLP: any;
+	let dataSVM: any;
+	let dataXGBoost: any;
+	let dataLogistic: any;
+	let dataReference: any;
+
+	onMount(() => {
+		loaded = true; // this is for the fade transition
+
+		const parseValuesToFloat = (obj: Record<string, string | number>): Record<string, number> => {
+			const result: Record<string, number> = {};
+
+			for (const key in obj) {
+				if (obj.hasOwnProperty(key)) {
+					// Parse the value to float if it's a string
+					result[key] =
+						typeof obj[key] === 'string' ? parseFloat(obj[key] as string) : (obj[key] as number);
+				}
+			}
+
+			return result;
+		};
+
+		async function loadPrediction(path: string) {
+			const data = await d3.csv(path);
+
+			let tempData = data.map((d) => parseValuesToFloat(d));
+			let result: any = [];
+			for (let i = 0; i < tempData.length; i++) {
+				let row = tempData[i];
+				result.push({
+					id: i,
+					prediction: row.predicted_diagnosis
+				});
+			}
+			result.columns = ['id', 'prediction'];
+			return result;
+		}
+
+		async function loadReference(path: string) {
+			const data = await d3.csv(path);
+			let temp = data.map((d) => parseValuesToFloat(d));
+			let result: any = [];
+			for (let i = 0; i < temp.length; i++) {
+				let row = temp[i];
+				result.push({
+					id: i,
+					PC1: row.PC1,
+					PC2: row.PC2,
+					diagnosis: row.real_diagnosis
+				});
+			}
+			result.columns = ['id', 'PC1', 'PC2', 'diagnosis'];
+			return result;
+		}
+
+		async function mergeData(data: any, reference: any) {
+			let result: any = [];
+			for (let i = 0; i < data.length; i++) {
+				let row = data[i];
+				result.push({
+					id: i,
+					PC1: reference[i].PC1,
+					PC2: reference[i].PC2,
+					diagnosis: reference[i].diagnosis,
+					prediction: row.prediction
+				});
+			}
+			result.columns = ['id', 'PC1', 'PC2', 'diagnosis', 'prediction'];
+			return result;
+		}
+
+		const asyncLoad = async () => {
+			dataLogistic = await loadPrediction('/predictions_log_reg.csv');
+			dataSVM = await loadPrediction('/predictions_svm.csv');
+			dataXGBoost = await loadPrediction('/predictions_xgb.csv');
+			dataMLP = await loadPrediction('/predictions_mlp.csv');
+			dataReference = await loadReference('/dataset_references.csv');
+
+			dataLogistic = await mergeData(dataLogistic, dataReference);
+			dataSVM = await mergeData(dataSVM, dataReference);
+			dataXGBoost = await mergeData(dataXGBoost, dataReference);
+			dataMLP = await mergeData(dataMLP, dataReference);
+		};
+
+		asyncLoad();
+
+		window.addEventListener('resize', draw);
+	});
+
+	function draw(): void {
+		console.log(currentModel);
+		if (currentModel === 'Logistic') {
+			drawConfusionMatrix(dataLogistic);
+			drawROC(dataLogistic);
+			drawClassificationReport(dataLogistic);
+			drawDecisionBoundaries(dataLogistic);
+		} else if (currentModel === 'SVM') {
+			drawConfusionMatrix(dataSVM);
+			drawROC(dataSVM);
+			drawClassificationReport(dataSVM);
+			drawDecisionBoundaries(dataSVM);
+		} else if (currentModel === 'XGBoost') {
+			drawConfusionMatrix(dataXGBoost);
+			drawROC(dataXGBoost);
+			drawClassificationReport(dataXGBoost);
+			drawDecisionBoundaries(dataXGBoost);
+		} else if (currentModel === 'MLP') {
+			drawConfusionMatrix(dataMLP);
+			drawROC(dataMLP);
+			drawClassificationReport(dataMLP);
+			drawDecisionBoundaries(dataMLP);
+		}
+	}
+
+	function drawROC(data: any): void {}
+	function drawConfusionMatrix(data: any): void {}
+	function drawClassificationReport(data: any): void {}
+	function drawDecisionBoundaries(data: any): void {
+		divDecisionBoundaries.innerHTML = ''; // equivalent of d3.select(divDecisionBoundaries).html(null) but in svelte;
+
+		console.log(data);
+
+		// draw PCA prediction on div
+		let width = divDecisionBoundaries.clientWidth;
+		let height = divDecisionBoundaries.clientHeight;
+
+		let margin = 50;
+
+		let min_value_PC1 = d3.min(data, (d: any) => d.PC1 as number) as number;
+		let max_value_PC1 = d3.max(data, (d: any) => d.PC1 as number) as number;
+
+		const xScale = d3
+			.scaleLinear()
+			.domain([min_value_PC1 * 1.1, max_value_PC1 * 1.1])
+			.range([margin, width - margin]);
+
+		let min_value_PC2 = d3.min(data, (d: any) => d.PC2 as number) as number;
+		let max_value_PC2 = d3.max(data, (d: any) => d.PC2 as number) as number;
+
+		const yScale = d3
+			.scaleLinear()
+			.domain([min_value_PC2 * 1.1, max_value_PC2 * 1.1])
+			.range([height - margin, margin]);
+
+		const xAxis = d3.axisBottom(xScale);
+		const yAxis = d3.axisLeft(yScale);
+
+		const svg = d3
+			.select(divDecisionBoundaries)
+			.append('svg')
+			.attr('width', width)
+			.attr('height', height);
+
+		// X axis
+		svg
+			.append('g')
+			.attr('transform', `translate(0, ${height - margin})`)
+			.call(xAxis)
+			.append('text')
+			.attr('x', width / 2)
+			.attr('y', margin - 20)
+			.attr('text-anchor', 'middle')
+			.text('Principal Component 1')
+			.attr('class', 'fill-current');
+
+		// Y axis
+		svg
+			.append('g')
+			.attr('transform', `translate(${margin}, 0)`)
+			.call(yAxis)
+			.append('text')
+			.attr('x', -height / 2)
+			.attr('y', -margin + 20)
+			.attr('text-anchor', 'middle')
+			.attr('transform', 'rotate(-90)')
+			.attr('class', 'fill-current')
+			.text('Principal Component 2');
+
+		let dataTrueClassification = data.filter((d: any) => d.diagnosis == d.prediction);
+		let dataFalseClassification = data.filter((d: any) => d.diagnosis != d.prediction);
+		// Add dots
+		let circles = svg
+			.append('g')
+			.selectAll('circle')
+			.data(dataTrueClassification)
+			.enter()
+			.append('circle')
+			.attr('cx', (d: any) => xScale(d.PC1))
+			.attr('cy', (d: any) => yScale(d.PC2))
+			.attr('r', 5)
+			.attr('class', (d: any) => (d.diagnosis == 0 ? 'fill-primary ' : 'fill-error'))
+			.attr('fill-opacity', 0.3);
+
+		let rectangles = svg
+			.append('g')
+			.selectAll('rect')
+			.data(dataFalseClassification)
+			.enter()
+			.append('rect')
+			.attr('x', (d: any) => xScale(d.PC1) - 5)
+			.attr('y', (d: any) => yScale(d.PC2) - 5)
+			.attr('width', 10)
+			.attr('height', 10)
+			.attr('class', (d: any) => (d.diagnosis == 0 ? 'fill-primary ' : 'fill-error'))
+			.attr('fill-opacity', 0.3);
+
+		// add legend text on the right using a small circle and a text
+		circles
+			.on('mouseover', function (event: any, d: any) {
+				let circlesWithSameDiagnostic = circles.filter((d2: any) => d2.diagnosis == d.diagnosis);
+
+				circlesWithSameDiagnostic
+					.attr('fill-opacity', 1)
+					.attr('stroke', 'black')
+					.attr('stroke-width', 1);
+
+				d3.select(this).attr('r', 10);
+
+				svg
+					.append('text')
+					.attr('x', xScale(d.PC1) + 10)
+					.attr('y', yScale(d.PC2) - 10)
+					.text(d.id)
+					.attr('class', 'fill-current')
+					.attr('id', 'tooltip');
+			})
+			.on('mouseout', function (event: any, d: any) {
+				let circlesWithSameDiagnostic = circles.filter((d2: any) => d2.diagnosis == d.diagnosis);
+
+				circlesWithSameDiagnostic.attr('fill-opacity', 0.3).attr('stroke', 'none');
+				d3.select(this).attr('r', 5);
+				svg.select('#tooltip').remove();
+			});
+
+		rectangles
+			.on('mouseover', function (event: any, d: any) {
+				let rectanglesWithSameDiagnostic = rectangles.filter(
+					(d2: any) => d2.diagnosis == d.diagnosis
+				);
+				rectanglesWithSameDiagnostic
+					.attr('fill-opacity', 1)
+					.attr('stroke', 'black')
+					.attr('stroke-width', 1);
+				d3.select(this).attr('r', 10);
+				svg
+					.append('text')
+					.attr('x', xScale(d.PC1) + 10)
+					.attr('y', yScale(d.PC2) - 10)
+					.text(d.id)
+					.attr('class', 'fill-current')
+					.attr('id', 'tooltip');
+			})
+			.on('mouseout', function (event: any, d: any) {
+				let rectanglesWithSameDiagnostic = rectangles.filter(
+					(d2: any) => d2.diagnosis == d.diagnosis
+				);
+				rectanglesWithSameDiagnostic.attr('fill-opacity', 0.3).attr('stroke', 'none');
+				d3.select(this).attr('r', 5);
+				svg.select('#tooltip').remove();
+			});
+
+		svg
+			.append('circle')
+			.attr('cx', width - margin * 2.5)
+			.attr('cy', margin)
+			.attr('r', 5)
+			.attr('class', 'fill-primary');
+
+		svg
+			.append('rect')
+			.attr('x', width - margin * 2.5 - 5)
+			.attr('y', margin * 2.5 - 5)
+			.attr('width', 10)
+			.attr('height', 10)
+			.attr('class', 'fill-primary');
+
+		svg
+			.append('circle')
+			.attr('cx', width - margin * 2.5)
+			.attr('cy', margin * 1.5)
+			.attr('r', 5)
+			.attr('class', 'fill-error');
+
+		svg
+			.append('rect')
+			.attr('x', width - margin * 2.5 - 5)
+			.attr('y', margin * 2 - 5)
+			.attr('width', 10)
+			.attr('height', 10)
+			.attr('class', 'fill-error');
+
+		svg
+			.append('text')
+			.attr('x', width - margin * 2.2)
+			.attr('y', margin + 5)
+			.text('True Negative')
+			.style('font-size', '15px')
+			.attr('alignment-baseline', 'bottom')
+			.attr('class', 'fill-current');
+		svg
+			.append('text')
+			.attr('x', width - margin * 2.2)
+			.attr('y', margin * 1.5 + 5)
+			.text('True Positive')
+			.style('font-size', '15px')
+			.attr('alignment-baseline', 'middle')
+			.attr('class', 'fill-current');
+
+		svg
+			.append('text')
+			.attr('x', width - margin * 2.2)
+			.attr('y', margin * 2 + 5)
+			.text('False Positive')
+			.style('font-size', '15px')
+			.attr('alignment-baseline', 'middle')
+			.attr('class', 'fill-current');
+
+		svg
+			.append('text')
+			.attr('x', width - margin * 2.2)
+			.attr('y', margin * 2.5 + 5)
+			.text('False Negative')
+			.style('font-size', '15px')
+			.attr('alignment-baseline', 'middle')
+			.attr('class', 'fill-current');
+
+		// add title
+		svg
+			.append('text')
+			.attr('x', '50%')
+			.attr('y', margin / 2)
+			.text('PCA Test Set')
+			.style('text-anchor', 'middle')
+			.attr('class', 'font-display text-3xl font-bold fill-current');
+	}
+
+	function changeModel(e: Event): void {
+		currentModel = (e.target as HTMLInputElement).value;
+		draw();
+	}
+</script>
+
+<svelte:head>
+	<title>Models</title>
+</svelte:head>
+
+{#if loaded}
+	<div in:fade={{ duration: 400, delay: 100 }} class="mx-auto transition duration-500">
+		<div class="bg-base-100 py-10 px-4 mx-auto">
+			<div
+				class="flex flex-col items-center justify-stretch group max-w-3xl mx-auto overflow-visible"
+			>
+				<div class="md:flex block justify-center items-center md:mt-3 mb-6">
+					<h1
+						class="text-center font-display text-5xl md:text-7xl font-bold bg-clip-text bg-secondary anim-gradient pb-3"
+					>
+						Models
+					</h1>
+				</div>
+				<div class="flex justify-center items-center mt-3 mb-6">
+					<div class="font-display text-lg text-center">Breast Cancer Wisconsin Dataset</div>
+				</div>
+				<div class="text-center max-w-md">Classification of cells using different models</div>
+			</div>
+		</div>
+
+		<!-- Model Selector -->
+
+		<div class="container mx-auto flex flex-col lg:flex-row justify-center items-center gap-5 p-2">
+			<input
+				type="radio"
+				name="model"
+				class="btn hover:border-primary grow w-[13rem]"
+				value="Logistic"
+				aria-label="Logistic"
+				on:change={changeModel}
+			/>
+			<input
+				type="radio"
+				name="model"
+				class="btn hover:border-primary grow w-[13rem]"
+				value="SVM"
+				aria-label="Support Vector Machine"
+				on:change={changeModel}
+			/>
+			<input
+				type="radio"
+				name="model"
+				class="btn hover:border-primary grow w-[13rem]"
+				value="XGBoost"
+				aria-label="XGBoost"
+				on:change={changeModel}
+			/>
+			<input
+				type="radio"
+				name="model"
+				class="btn hover:border-primary grow w-[13rem]"
+				value="MLP"
+				aria-label="Multi-layer Perceptron"
+				on:change={changeModel}
+			/>
+		</div>
+
+		<div class="divider my-20" />
+
+		<!-- Confusion and ROC -->
+		<div
+			class="container mx-auto flex flex-col lg:flex-row lg:flew-wrap justify-center items-center gap-5 p-2 mb-5"
+		>
+			<div
+				class="md:w-full h-[30rem] bg-neutral rounded-md p-2"
+				bind:this={divConfusionMatrix}
+			></div>
+			<div class=" md:w-full h-[30rem] bg-neutral rounded-md p-2" bind:this={divROC}></div>
+		</div>
+
+		<!-- Classification report and decision boundaries -->
+		<div
+			class="container mx-auto flex flex-col lg:flex-row lg:flew-wrap justify-center items-center gap-5 p-2"
+		>
+			<div
+				class="w-full h-[30rem] bg-neutral rounded-md p-2"
+				bind:this={divClassificationReport}
+			></div>
+			<div
+				class="w-full h-[30rem] bg-neutral rounded-md p-2"
+				bind:this={divDecisionBoundaries}
+			></div>
+		</div>
+
+		<!-- PROJECTS FROM HERE -->
+		<div class="divider m-10" />
+	</div>
+{/if}
