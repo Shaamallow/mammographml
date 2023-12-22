@@ -1,10 +1,7 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-
 	import { fade } from 'svelte/transition';
 	import { onMount } from 'svelte';
 	import * as d3 from 'd3';
-	import { geoNaturalEarth1 } from 'd3-geo';
 
 	let loaded = false;
 	let divMap: HTMLElement;
