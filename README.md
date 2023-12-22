@@ -1,38 +1,35 @@
-# create-svelte
+# README
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+This was done as a final project for the course 'DataVisualisation' at Ecole Polytechnique in 2023. The goal was to create a website to visualize a dataset (that we could chose). We chose to visualize the data from [UC Irvine Machine Learning Repository](https://www.kaggle.com/datasets/uciml/breast-cancer-wisconsin-data), a dataset used as a baseline in this [Article](https://www.semanticscholar.org/paper/Nuclear-feature-extraction-for-breast-tumor-Street-Wolberg/53f0fbb425bc14468eb3bf96b2e1d41ba8087f36) about *Nuclear feature extraction for breast tumor diagnosis*
 
-## Creating a project
+## TechStack
 
-If you're seeing this, you've probably already done this step. Congrats!
+This was made using :
+
+- [Svelte](https://svelte.dev/) a popular JS Framewok (and my personal favorite)
+- [D3.js](https://d3js.org/) a popular JS library for data visualization
+- [TailwindCSS](https://tailwindcss.com/) a CSS framework
+- [DaisyUI](https://daisyui.com/) a CSS framework compatible with TailwindCSS
+- [Python](https://www.python.org/) for data processing, computings some graphs and the differents models we trained
+
+## Install and Run website
+
+Clone the repository :
 
 ```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
+git clone https://github.com/Shaamallow/mammographml.git
 ```
 
-## Developing
+Install dependencies :
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+```bash
+npm install 
+```
+
+Run in dev mode :
 
 ```bash
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+The website should also be available at [mammographml.shaamallow.com](https://mammographml.shaamallow.com/) (at least for project submission).
