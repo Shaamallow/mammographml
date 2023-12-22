@@ -1,6 +1,6 @@
 # README
 
-This was done as a final project for the course 'DataVisualisation' at Ecole Polytechnique in 2023. The goal was to create a website to visualize a dataset (that we could chose). We chose to visualize the data from [UC Irvine Machine Learning Repository](https://www.kaggle.com/datasets/uciml/breast-cancer-wisconsin-data), a dataset used as a baseline in this [Article](https://www.semanticscholar.org/paper/Nuclear-feature-extraction-for-breast-tumor-Street-Wolberg/53f0fbb425bc14468eb3bf96b2e1d41ba8087f36) about *Nuclear feature extraction for breast tumor diagnosis*
+This was done as a final project for the course 'DataVisualisation' at Ecole Polytechnique in 2023. The goal was to create a website to visualize a dataset (that we could chose). We chose to visualize the data from [UC Irvine Machine Learning Repository](https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic), a dataset used as a baseline in this [Article](https://www.semanticscholar.org/paper/Nuclear-feature-extraction-for-breast-tumor-Street-Wolberg/53f0fbb425bc14468eb3bf96b2e1d41ba8087f36) about _Nuclear feature extraction for breast tumor diagnosis_
 
 ## TechStack
 
@@ -23,7 +23,7 @@ git clone https://github.com/Shaamallow/mammographml.git
 Install dependencies :
 
 ```bash
-npm install 
+npm install
 ```
 
 Run in dev mode :
