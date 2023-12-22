@@ -18,6 +18,11 @@
 	let dataLogistic: any;
 	let dataReference: any;
 
+	// classification report data
+	let dataClassificationReport: any;
+
+	let accuracy: number = 0;
+
 	onMount(() => {
 		loaded = true; // this is for the fade transition
 
@@ -68,6 +73,10 @@
 			return result;
 		}
 
+		async function loadClassificationReport(path: string) {
+			const data = await d3.csv(path);
+			return data;
+		}
 		async function mergeData(data: any, reference: any) {
 			let result: any = [];
 			for (let i = 0; i < data.length; i++) {
@@ -95,6 +104,8 @@
 			dataSVM = await mergeData(dataSVM, dataReference);
 			dataXGBoost = await mergeData(dataXGBoost, dataReference);
 			dataMLP = await mergeData(dataMLP, dataReference);
+
+			dataClassificationReport = await loadClassificationReport('/classification_report_data.csv');
 		};
 
 		asyncLoad();
@@ -103,41 +114,252 @@
 	});
 
 	function draw(): void {
-		console.log(currentModel);
 		if (currentModel === 'Logistic') {
 			drawConfusionMatrix(dataLogistic);
 			drawROC(dataLogistic);
-			drawClassificationReport(dataLogistic);
+			drawClassificationReport('log_reg');
 			drawDecisionBoundaries(dataLogistic);
 		} else if (currentModel === 'SVM') {
 			drawConfusionMatrix(dataSVM);
 			drawROC(dataSVM);
-			drawClassificationReport(dataSVM);
+			drawClassificationReport('svm');
 			drawDecisionBoundaries(dataSVM);
 		} else if (currentModel === 'XGBoost') {
 			drawConfusionMatrix(dataXGBoost);
 			drawROC(dataXGBoost);
-			drawClassificationReport(dataXGBoost);
+			drawClassificationReport('xgb');
 			drawDecisionBoundaries(dataXGBoost);
 		} else if (currentModel === 'MLP') {
 			drawConfusionMatrix(dataMLP);
 			drawROC(dataMLP);
-			drawClassificationReport(dataMLP);
+			drawClassificationReport('mlp');
 			drawDecisionBoundaries(dataMLP);
 		}
 	}
 
 	function drawROC(data: any): void {}
 	function drawConfusionMatrix(data: any): void {}
-	function drawClassificationReport(data: any): void {}
+	function drawClassificationReport(modelName: string): void {
+		divClassificationReport.innerHTML = '';
+
+		let precisionRow = dataClassificationReport.filter((d: any) => d.Metrics == 'precision');
+		let recallRow = dataClassificationReport.filter((d: any) => d.Metrics == 'recall');
+		let f1Row = dataClassificationReport.filter((d: any) => d.Metrics == 'f1');
+		let accuracyRow = dataClassificationReport.filter((d: any) => d.Metrics == 'accuracy');
+
+		let precision = [
+			parseFloat(precisionRow[0][`B_${modelName}`]),
+			parseFloat(precisionRow[0][`M_${modelName}`])
+		];
+		let recall = [
+			parseFloat(recallRow[0][`B_${modelName}`]),
+			parseFloat(recallRow[0][`M_${modelName}`])
+		];
+		let f1 = [parseFloat(f1Row[0][`B_${modelName}`]), parseFloat(f1Row[0][`M_${modelName}`])];
+
+		accuracy = parseFloat(accuracyRow[0][`B_${modelName}`]);
+
+		let padding = 10;
+
+		let width = divClassificationReport.clientWidth - padding * 2;
+		let height = divClassificationReport.clientHeight - padding * 2;
+
+		let margin = 80;
+
+		let colorScale = d3.scaleSequential(d3.interpolateBlues).domain([0.8, 1]);
+
+		let widthRect = (width - margin * 2) / 2;
+		let heightRect = (height - margin * 2) / 3;
+
+		let svg = d3
+			.select(divClassificationReport)
+			.append('svg')
+			.attr('width', width)
+			.attr('height', height);
+
+		// add the 6 big rectangles for the classification report
+		// add text on top of the rectangles for B and M
+		// add legend on the left
+		//
+		svg
+			.append('text')
+			.attr('x', margin + widthRect / 2)
+			.attr('y', margin)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('class', 'fill-current')
+			.text('Bening');
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect + widthRect / 2)
+			.attr('y', margin)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('class', 'fill-current')
+			.text('Malignant');
+
+		// Precision on B
+		svg
+			.append('rect')
+			.attr('x', margin)
+			.attr('y', margin + 10)
+			.attr('width', widthRect)
+			.attr('height', heightRect)
+			.attr('fill', colorScale(precision[0]));
+
+		// Precision on M
+		svg
+			.append('rect')
+			.attr('x', margin + widthRect)
+			.attr('y', margin + 10)
+			.attr('width', widthRect)
+			.attr('height', heightRect)
+			.attr('fill', colorScale(precision[1]));
+
+		// Recall on B
+		svg
+			.append('rect')
+			.attr('x', margin)
+			.attr('y', margin + heightRect + 10)
+			.attr('width', widthRect)
+			.attr('height', heightRect)
+			.attr('fill', colorScale(recall[0]));
+
+		// Recall on M
+		svg
+			.append('rect')
+			.attr('x', margin + widthRect)
+			.attr('y', margin + heightRect + 10)
+			.attr('width', widthRect)
+			.attr('height', heightRect)
+			.attr('fill', colorScale(recall[1]));
+
+		// f1 on B
+		svg
+			.append('rect')
+			.attr('x', margin)
+			.attr('y', margin + heightRect * 2 + 10)
+			.attr('width', widthRect)
+			.attr('height', heightRect)
+			.attr('fill', colorScale(f1[0]));
+
+		// f1 on M
+		svg
+			.append('rect')
+			.attr('x', margin + widthRect)
+			.attr('y', margin + heightRect * 2 + 10)
+			.attr('width', widthRect)
+			.attr('height', heightRect)
+			.attr('fill', colorScale(f1[1]));
+
+		// white text only
+		svg
+			.append('text')
+			.attr('x', margin + widthRect / 2)
+			.attr('y', margin + heightRect / 2 + 10)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('fill', 'white')
+			.attr('font-size', '1.5rem')
+			.text(precision[0].toFixed(2));
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect + widthRect / 2)
+			.attr('y', margin + heightRect / 2 + 10)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('fill', 'white')
+			.attr('font-size', '1.5rem')
+			.text(precision[1].toFixed(2));
+
+		svg
+			.append('text')
+			.attr('x', margin / 2)
+			.attr('y', margin + heightRect / 2 + 10)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('class', 'fill-current')
+			.attr('font-size', '0.9rem')
+			.text('Precision');
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect / 2)
+			.attr('y', margin + heightRect + heightRect / 2 + 10)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('fill', 'white')
+			.attr('font-size', '1.5rem')
+			.text(recall[0].toFixed(2));
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect + widthRect / 2)
+			.attr('y', margin + heightRect + heightRect / 2 + 10)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('fill', 'white')
+			.attr('font-size', '1.5rem')
+			.text(recall[1].toFixed(2));
+
+		svg
+			.append('text')
+			.attr('x', margin / 2)
+			.attr('y', margin + heightRect + heightRect / 2 + 10)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('class', 'fill-current')
+			.attr('font-size', '0.9rem')
+			.text('Recall');
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect / 2)
+			.attr('y', margin + heightRect * 2 + heightRect / 2 + 10)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('fill', 'white')
+			.attr('font-size', '1.5rem')
+			.text(f1[0].toFixed(2));
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect + widthRect / 2)
+			.attr('y', margin + heightRect * 2 + heightRect / 2 + 10)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('fill', 'white')
+			.attr('font-size', '1.5rem')
+			.text(f1[1].toFixed(2));
+
+		svg
+			.append('text')
+			.attr('x', margin / 2)
+			.attr('y', margin + heightRect * 2 + heightRect / 2 + 10)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('class', 'fill-current')
+			.attr('font-size', '0.9rem')
+			.text('F1');
+
+		// add title
+		svg
+			.append('text')
+			.attr('x', '50%')
+			.attr('y', margin / 2)
+			.text('Classification Report')
+			.style('text-anchor', 'middle')
+			.attr('class', 'font-display text-3xl font-bold fill-current');
+	}
 	function drawDecisionBoundaries(data: any): void {
 		divDecisionBoundaries.innerHTML = ''; // equivalent of d3.select(divDecisionBoundaries).html(null) but in svelte;
-
-		console.log(data);
+		let padding = 10;
 
 		// draw PCA prediction on div
-		let width = divDecisionBoundaries.clientWidth;
-		let height = divDecisionBoundaries.clientHeight;
+		let width = divDecisionBoundaries.clientWidth - padding * 2;
+		let height = divDecisionBoundaries.clientHeight - padding * 2;
 
 		let margin = 50;
 
@@ -308,7 +530,7 @@
 			.append('text')
 			.attr('x', width - margin * 2.2)
 			.attr('y', margin + 5)
-			.text('True Negative')
+			.text('TN')
 			.style('font-size', '15px')
 			.attr('alignment-baseline', 'bottom')
 			.attr('class', 'fill-current');
@@ -316,7 +538,7 @@
 			.append('text')
 			.attr('x', width - margin * 2.2)
 			.attr('y', margin * 1.5 + 5)
-			.text('True Positive')
+			.text('TP')
 			.style('font-size', '15px')
 			.attr('alignment-baseline', 'middle')
 			.attr('class', 'fill-current');
@@ -325,7 +547,7 @@
 			.append('text')
 			.attr('x', width - margin * 2.2)
 			.attr('y', margin * 2 + 5)
-			.text('False Positive')
+			.text('FP')
 			.style('font-size', '15px')
 			.attr('alignment-baseline', 'middle')
 			.attr('class', 'fill-current');
@@ -334,7 +556,7 @@
 			.append('text')
 			.attr('x', width - margin * 2.2)
 			.attr('y', margin * 2.5 + 5)
-			.text('False Negative')
+			.text('FN')
 			.style('font-size', '15px')
 			.attr('alignment-baseline', 'middle')
 			.attr('class', 'fill-current');
@@ -344,7 +566,7 @@
 			.append('text')
 			.attr('x', '50%')
 			.attr('y', margin / 2)
-			.text('PCA Test Set')
+			.text('Predictions Test Set')
 			.style('text-anchor', 'middle')
 			.attr('class', 'font-display text-3xl font-bold fill-current');
 	}
@@ -416,7 +638,11 @@
 			/>
 		</div>
 
-		<div class="divider my-20" />
+		<div class="divider my-10" />
+
+		<div class="mx-auto flex justify-center items-center mb-10">
+			<h1 class="text-3xl">Accuracy : {accuracy}</h1>
+		</div>
 
 		<!-- Confusion and ROC -->
 		<div
@@ -434,11 +660,11 @@
 			class="container mx-auto flex flex-col lg:flex-row lg:flew-wrap justify-center items-center gap-5 p-2"
 		>
 			<div
-				class="w-full h-[30rem] bg-neutral rounded-md p-2"
+				class="w-full h-[30rem] bg-neutral rounded-md p-2 pt-5"
 				bind:this={divClassificationReport}
 			></div>
 			<div
-				class="w-full h-[30rem] bg-neutral rounded-md p-2"
+				class="w-full h-[30rem] bg-neutral rounded-md p-2 pt-5"
 				bind:this={divDecisionBoundaries}
 			></div>
 		</div>
