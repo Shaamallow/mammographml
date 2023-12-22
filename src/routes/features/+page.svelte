@@ -151,14 +151,12 @@
 		width = width - margin.left - margin.right;
 		height = height - margin.top - margin.bottom;
 
-		let keys = Object.keys(dataOriginal[0]);
-
 		let interestingKeysMost = [
-			'perimeter_mean',
-			'radius_worst',
-			'concave_points_mean',
+			'concave_points_worst',
 			'perimeter_worst',
-			'concave_points_worst'
+			'concave_points_mean',
+			'radius_worst',
+			'perimeter_mean'
 		];
 
 		let interestingKeysLeast = [
@@ -168,6 +166,9 @@
 			'symmetry_se',
 			'fractal_dimension_se'
 		];
+
+		// concat the two arrays into keys
+		let keys = interestingKeysMost.concat(interestingKeysLeast);
 
 		// for all keys except 'id' and 'diagnosis' draw a density plot
 		// with the corresponding data
