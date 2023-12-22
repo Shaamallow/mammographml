@@ -343,7 +343,9 @@
 		<div class="divider my-10" id="map-div" />
 
 		<div class="mx-auto flex flex-col justify-center items-center mb-10 p-2">
-			<h1 class="text-5xl font-display font-bold text-center">Map of breast Cancer deaths</h1>
+			<h1 class="md:text-5xl text-3xl font-display font-bold text-center">
+				Map of breast Cancer deaths
+			</h1>
 
 			<div class="text-center max-w-md">By Country, from 1990 to 2016</div>
 		</div>
