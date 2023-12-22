@@ -98,7 +98,7 @@
 			Copyright © 2023 - All right reserved by Eyal Benaroche & Valentin Badea
 		</div>
 		<div class="p-2">
-			<a href="https://github.com/Shaamallow"
+			<a href="https://github.com/Shaamallow/mammographml" target="_blank"
 				><svg
 					xmlns="http://www.w3.org/2000/svg"
 					x="0px"
