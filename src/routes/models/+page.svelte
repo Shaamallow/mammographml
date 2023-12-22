@@ -20,6 +20,7 @@
 
 	// classification report data
 	let dataClassificationReport: any;
+	let dataConfusionMatrix: any;
 
 	let accuracy: number = 0;
 
@@ -105,7 +106,8 @@
 			dataXGBoost = await mergeData(dataXGBoost, dataReference);
 			dataMLP = await mergeData(dataMLP, dataReference);
 
-			dataClassificationReport = await loadClassificationReport('/classification_report_data.csv');
+			dataClassificationReport = await d3.csv('/classification_report_data.csv');
+			dataConfusionMatrix = await d3.csv('/confusion_matrix_data.csv');
 		};
 
 		asyncLoad();
@@ -115,22 +117,22 @@
 
 	function draw(): void {
 		if (currentModel === 'Logistic') {
-			drawConfusionMatrix(dataLogistic);
+			drawConfusionMatrix('log_reg');
 			drawROC(dataLogistic);
 			drawClassificationReport('log_reg');
 			drawDecisionBoundaries(dataLogistic);
 		} else if (currentModel === 'SVM') {
-			drawConfusionMatrix(dataSVM);
+			drawConfusionMatrix('svm');
 			drawROC(dataSVM);
 			drawClassificationReport('svm');
 			drawDecisionBoundaries(dataSVM);
 		} else if (currentModel === 'XGBoost') {
-			drawConfusionMatrix(dataXGBoost);
+			drawConfusionMatrix('xgb');
 			drawROC(dataXGBoost);
 			drawClassificationReport('xgb');
 			drawDecisionBoundaries(dataXGBoost);
 		} else if (currentModel === 'MLP') {
-			drawConfusionMatrix(dataMLP);
+			drawConfusionMatrix('mlp');
 			drawROC(dataMLP);
 			drawClassificationReport('mlp');
 			drawDecisionBoundaries(dataMLP);
@@ -138,7 +140,196 @@
 	}
 
 	function drawROC(data: any): void {}
-	function drawConfusionMatrix(data: any): void {}
+	function drawConfusionMatrix(modelName: string): void {
+		divConfusionMatrix.innerHTML = '';
+
+		let padding = 10;
+		let width = divConfusionMatrix.clientWidth - padding * 2;
+		let height = divConfusionMatrix.clientHeight - padding * 2;
+
+		let margin = 65;
+
+		let trueNegative = parseFloat(dataConfusionMatrix[0][`${modelName}`]);
+		let falseNegative = parseFloat(dataConfusionMatrix[1][`${modelName}`]);
+		let falsePositive = parseFloat(dataConfusionMatrix[2][`${modelName}`]);
+		let truePositive = parseFloat(dataConfusionMatrix[3][`${modelName}`]);
+
+		let min_value = d3.min([trueNegative, falseNegative, truePositive, falsePositive]) as number;
+		let max_value = d3.max([trueNegative, falseNegative, truePositive, falsePositive]) as number;
+
+		let colorScale = d3.scaleSequential(d3.interpolateBlues).domain([min_value, max_value]);
+
+		let svg = d3
+			.select(divConfusionMatrix)
+			.append('svg')
+			.attr('width', width)
+			.attr('height', height);
+
+		let widthRect = (width - margin * 2) / 2;
+		let heightRect = (height - margin * 2) / 2;
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect / 2)
+			.attr('y', margin - 10)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('class', 'fill-current')
+			.text('Bening');
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect + widthRect / 2)
+			.attr('y', margin - 10)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('class', 'fill-current')
+			.text('Malignant');
+
+		// text on the left
+		svg
+			.append('text')
+			.attr('x', margin / 2)
+			.attr('y', margin + heightRect / 2)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('class', 'fill-current')
+			.attr('font-size', '0.9rem')
+			.text('Bening');
+
+		svg
+			.append('text')
+			.attr('x', margin / 2)
+			.attr('y', margin + heightRect + heightRect / 2)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('class', 'fill-current')
+			.attr('font-size', '0.8rem')
+			.text('Malignant');
+
+		// draw rectangles
+
+		svg
+			.append('rect')
+			.attr('x', margin)
+			.attr('y', margin)
+			.attr('width', widthRect)
+			.attr('height', heightRect)
+			.attr('fill', colorScale(trueNegative));
+
+		svg
+			.append('rect')
+			.attr('x', margin + widthRect)
+			.attr('y', margin)
+			.attr('width', widthRect)
+			.attr('height', heightRect)
+			.attr('fill', colorScale(falsePositive));
+
+		svg
+			.append('rect')
+			.attr('x', margin)
+			.attr('y', margin + heightRect)
+			.attr('width', widthRect)
+			.attr('height', heightRect)
+			.attr('fill', colorScale(falseNegative));
+
+		svg
+			.append('rect')
+			.attr('x', margin + widthRect)
+			.attr('y', margin + heightRect)
+			.attr('width', widthRect)
+			.attr('height', heightRect)
+			.attr('fill', colorScale(truePositive));
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect / 2)
+			.attr('y', margin + heightRect / 2)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('fill', 'white')
+			.attr('font-size', '1.5rem')
+			.text(trueNegative.toFixed(0));
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect / 2)
+			.attr('y', margin + heightRect / 2 + 20)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('fill', 'white')
+			.attr('font-size', '0.8rem')
+			.text('TN');
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect + widthRect / 2)
+			.attr('y', margin + heightRect / 2)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('fill', 'black')
+			.attr('font-size', '1.5rem')
+			.text(falsePositive.toFixed(0));
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect + widthRect / 2)
+			.attr('y', margin + heightRect / 2 + 20)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('fill', 'black')
+			.attr('font-size', '0.8rem')
+			.text('FP');
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect / 2)
+			.attr('y', margin + heightRect + heightRect / 2)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('fill', 'black')
+			.attr('font-size', '1.5rem')
+			.text(falseNegative.toFixed(0));
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect / 2)
+			.attr('y', margin + heightRect + heightRect / 2 + 20)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('fill', 'black')
+			.attr('font-size', '0.8rem')
+			.text('FN');
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect + widthRect / 2)
+			.attr('y', margin + heightRect + heightRect / 2)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('fill', 'white')
+			.attr('font-size', '1.5rem')
+			.text(truePositive.toFixed(0));
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect + widthRect / 2)
+			.attr('y', margin + heightRect + heightRect / 2 + 20)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('fill', 'white')
+			.attr('font-size', '0.8rem')
+			.text('TP');
+
+		// title
+		svg
+			.append('text')
+			.attr('x', '50%')
+			.attr('y', margin / 2)
+			.text('Confusion Matrix')
+			.style('text-anchor', 'middle')
+			.attr('class', 'font-display text-3xl font-bold fill-current');
+	}
 	function drawClassificationReport(modelName: string): void {
 		divClassificationReport.innerHTML = '';
 
@@ -646,13 +837,13 @@
 
 		<!-- Confusion and ROC -->
 		<div
-			class="container mx-auto flex flex-col lg:flex-row lg:flew-wrap justify-center items-center gap-5 p-2 mb-5"
+			class="container mx-auto flex flex-col lg:flex-row lg:flew-wrap justify-center items-center gap-5 p-2"
 		>
 			<div
-				class="md:w-full h-[30rem] bg-neutral rounded-md p-2"
+				class="w-full h-[30rem] bg-neutral rounded-md p-2 pt-5"
 				bind:this={divConfusionMatrix}
 			></div>
-			<div class=" md:w-full h-[30rem] bg-neutral rounded-md p-2" bind:this={divROC}></div>
+			<div class="w-full h-[30rem] bg-neutral rounded-md p-2 pt-5" bind:this={divROC}></div>
 		</div>
 
 		<!-- Classification report and decision boundaries -->
