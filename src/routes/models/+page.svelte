@@ -175,6 +175,7 @@
 			.attr('text-anchor', 'middle')
 			.attr('alignment-baseline', 'middle')
 			.attr('class', 'fill-current')
+			.attr('font-size', '0.8rem')
 			.text('Bening');
 
 		svg
@@ -184,7 +185,17 @@
 			.attr('text-anchor', 'middle')
 			.attr('alignment-baseline', 'middle')
 			.attr('class', 'fill-current')
+			.attr('font-size', '0.8rem')
 			.text('Malignant');
+
+		svg
+			.append('text')
+			.attr('x', margin + widthRect)
+			.attr('y', margin - 10)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('class', 'fill-current')
+			.text('Ground Truth');
 
 		// text on the left
 		svg
@@ -269,7 +280,7 @@
 			.attr('alignment-baseline', 'middle')
 			.attr('fill', 'black')
 			.attr('font-size', '1.5rem')
-			.text(falsePositive.toFixed(0));
+			.text(falseNegative.toFixed(0));
 
 		svg
 			.append('text')
@@ -279,7 +290,7 @@
 			.attr('alignment-baseline', 'middle')
 			.attr('fill', 'black')
 			.attr('font-size', '0.8rem')
-			.text('FP');
+			.text('FN');
 
 		svg
 			.append('text')
@@ -289,7 +300,7 @@
 			.attr('alignment-baseline', 'middle')
 			.attr('fill', 'black')
 			.attr('font-size', '1.5rem')
-			.text(falseNegative.toFixed(0));
+			.text(falsePositive.toFixed(0));
 
 		svg
 			.append('text')
@@ -299,7 +310,7 @@
 			.attr('alignment-baseline', 'middle')
 			.attr('fill', 'black')
 			.attr('font-size', '0.8rem')
-			.text('FN');
+			.text('FP');
 
 		svg
 			.append('text')
@@ -325,7 +336,7 @@
 		svg
 			.append('text')
 			.attr('x', '50%')
-			.attr('y', margin / 2)
+			.attr('y', margin / 3)
 			.text('Confusion Matrix')
 			.style('text-anchor', 'middle')
 			.attr('class', 'font-display text-3xl font-bold fill-current');
@@ -738,7 +749,7 @@
 			.append('text')
 			.attr('x', width - margin * 2.2)
 			.attr('y', margin * 2 + 5)
-			.text('FP')
+			.text('FN')
 			.style('font-size', '15px')
 			.attr('alignment-baseline', 'middle')
 			.attr('class', 'fill-current');
@@ -747,7 +758,7 @@
 			.append('text')
 			.attr('x', width - margin * 2.2)
 			.attr('y', margin * 2.5 + 5)
-			.text('FN')
+			.text('FP')
 			.style('font-size', '15px')
 			.attr('alignment-baseline', 'middle')
 			.attr('class', 'fill-current');
