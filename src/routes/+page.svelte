@@ -1,15 +1,190 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-
 	import { fade } from 'svelte/transition';
 	import { onMount } from 'svelte';
+	import * as d3 from 'd3';
 
 	let loaded = false;
-	let map_svg: SVGElement;
+	let divMap: HTMLElement;
+
+	let deathData: any;
+	let worldMap: any;
 
 	onMount(() => {
 		loaded = true;
+
+		async function preprocess_death_data(path: string) {
+			let data = await d3.csv(path);
+			let data_preprocessed: any;
+			data_preprocessed = [];
+			for (let i = 0; i < data.length; i++) {
+				if (data[i]['Year'] == '2016') {
+					data_preprocessed.push({
+						Country: data[i]['Country'],
+						Deaths: parseFloat(data[i]['Deaths'])
+					});
+				}
+			}
+			data_preprocessed.push({
+				Country: 'Republic of the Congo',
+				Deaths: parseFloat(data_preprocessed[47]['Deaths'])
+			});
+			data_preprocessed.push({
+				Country: 'Democratic Republic of the Congo',
+				Deaths: parseFloat(data_preprocessed[54]['Deaths'])
+			});
+			data_preprocessed.push({
+				Country: 'Guinea Bissau',
+				Deaths: parseFloat(data_preprocessed[84]['Deaths'])
+			});
+			data_preprocessed.push({
+				Country: 'Republic of Serbia',
+				Deaths: parseFloat(data_preprocessed[168]['Deaths'])
+			});
+			data_preprocessed.push({
+				Country: 'United Republic of Tanzania',
+				Deaths: parseFloat(data_preprocessed[194]['Deaths'])
+			});
+			data_preprocessed.push({
+				Country: 'USA',
+				Deaths: parseFloat(data_preprocessed[208]['Deaths'])
+			});
+
+			return data_preprocessed;
+		}
+
+		const loadData = async () => {
+			deathData = await preprocess_death_data('/breast_cancer_deaths.csv');
+			worldMap = await d3.json('/worldMap.geojson');
+		};
+
+		loadData().then(() => {
+			drawDeathMap(deathData);
+		});
+
+		window.addEventListener('resize', () => {
+			drawDeathMap(deathData);
+		});
 	});
+
+	function drawDeathMap(data: any) {
+		divMap.innerHTML = '';
+
+		let width = divMap.clientWidth;
+		let height = width / 2;
+
+		let margin = 20;
+
+		const svg = d3
+			.select(divMap)
+			.append('svg')
+			.attr('width', width)
+			.attr('height', height + 50);
+
+		let projection = d3
+			.geoNaturalEarth1()
+			.scale(width / 2 / Math.PI)
+			.translate([width / 2, height / 2 + 50]);
+
+		let path: any = d3.geoPath().projection(projection);
+
+		console.log(data);
+		// china is max, should remove World, Western Europe and all that are not real countries...
+		let maxValue: number = data.find((d: any) => d.Country == 'China').Deaths as number;
+		let minValue: number = d3.min(data, (d: any) => d.Deaths as number) as number;
+		maxValue = Math.ceil(maxValue);
+
+		let colorScaleWorld = d3
+			.scaleSequential(d3.interpolateReds)
+			.domain([Math.log(minValue / 2), Math.log(maxValue / 2)]);
+
+		let countries = svg
+			.selectAll('path')
+			.data(worldMap.features)
+			.enter()
+			.append('path')
+			.attr('d', path)
+			.attr('fill', (d: any) => {
+				const countryData = data.find((country: any) => country.Country == d.properties.name);
+				return countryData ? colorScaleWorld(Math.log(countryData.Deaths / 2)) : '#ccc';
+			})
+			.attr('stroke', '#fff')
+			.attr('stroke-width', 0.5);
+
+		countries.on('mouseover', (event: any, d: any) => {
+			d3.select(event.currentTarget).attr('stroke-width', 2);
+
+			// compute centroid of path
+			let centroid = path.centroid(d);
+			// add tooltip at mouse position with country name and deaths
+
+			// get country data
+			let countryData = data.find((country: any) => country.Country == d.properties.name);
+			let deathString = countryData ? countryData.Deaths.toFixed(0) : 'No data';
+
+			svg
+				.append('text')
+				.attr('id', 'tooltip_name')
+				.attr('x', centroid[0])
+				.attr('y', centroid[1])
+				.attr('text-anchor', 'middle')
+				.attr('class', 'md:text-2xl text-sm')
+				.attr('font-weight', 'bold')
+				.attr('fill', 'black')
+				.text(`${d.properties.name}`);
+
+			svg
+				.append('text')
+				.attr('id', 'tooltip_deaths')
+				.attr('x', centroid[0])
+				.attr('y', centroid[1] + 20)
+				.attr('text-anchor', 'middle')
+				.attr('font-size', '0.8em')
+				.attr('font-weight', 'bold')
+				.attr('fill', 'black')
+				.text(`${deathString}`);
+		});
+
+		countries.on('mouseout', (event: any, d: any) => {
+			d3.select(event.currentTarget).attr('stroke-width', 0.5);
+
+			d3.select('#tooltip_name').remove();
+			d3.select('#tooltip_deaths').remove();
+		});
+
+		// add legend for color scale on top of map
+
+		let dataLegend = d3.range(minValue, maxValue, (maxValue - minValue) / 500);
+		let legendXScale = d3
+			.scaleLog()
+			.domain([minValue, maxValue])
+			.range([margin, width - margin]);
+		let legendAxis = d3.axisBottom(legendXScale).ticks(20);
+		let dataLegendLog = d3.range(
+			Math.log(minValue / 2),
+			Math.log(maxValue / 2),
+			(Math.log(maxValue / 2) - Math.log(minValue / 2)) / 500
+		);
+
+		svg.append('g').attr('transform', `translate(0, 40)`).call(legendAxis);
+		svg
+			.append('g')
+			.attr('transform', `translate(0, 20)`)
+			.attr('id', 'legendGradient')
+			.selectAll('rect')
+			.data(dataLegend)
+			.enter()
+			.append('rect')
+			.attr('x', (d: any) =>
+				d3
+					.scaleLinear()
+					.domain([minValue, maxValue])
+					.range([margin, width - margin])(d)
+			)
+			.attr('y', 0)
+			.attr('width', (width - 2 * margin) / 500)
+			.attr('height', 20)
+			.attr('fill', (d: any, i: any) => colorScaleWorld(dataLegendLog[i]));
+	}
 </script>
 
 <svelte:head>
@@ -126,15 +301,16 @@
 			</div>
 		</div>
 
-		<div class="divider my-20" id="map-div" />
+		<div class="divider my-10" id="map-div" />
 
-		<div class="w-11/12 rounded mx-auto bg-neutral h-[50rem]" id="map">
-			<h1
-				class="font-display text-xl md:text-3xl font-bold bg-clip-text bg-secondary mb-3 text-center"
-			>
-				La map ici
-			</h1>
-			<svg bind:this={map_svg}></svg>
+		<div class="mx-auto flex flex-col justify-center items-center mb-10 p-2">
+			<h1 class="text-5xl font-display font-bold text-center">Map of breast Cancer deaths</h1>
+
+			<div class="text-center max-w-md">By Country, from 1990 to 2016</div>
+		</div>
+
+		<div class="container rounded mx-auto bg-neutral">
+			<div class="w-full" bind:this={divMap}></div>
 		</div>
 
 		<div class="divider my-20" />
