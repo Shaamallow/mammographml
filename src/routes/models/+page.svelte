@@ -104,27 +104,27 @@
 		}
 
 		const asyncLoad = async () => {
-			dataLogistic = await loadPrediction('/predictions_log_reg.csv');
-			dataSVM = await loadPrediction('/predictions_svm.csv');
-			dataXGBoost = await loadPrediction('/predictions_xgb.csv');
-			dataMLP = await loadPrediction('/predictions_mlp.csv');
-			dataReference = await loadReference('/dataset_references.csv');
+			dataLogistic = await loadPrediction('/predictions/predictions_log_reg.csv');
+			dataSVM = await loadPrediction('/predictions/predictions_svm.csv');
+			dataXGBoost = await loadPrediction('/predictions/predictions_xgb.csv');
+			dataMLP = await loadPrediction('/predictions/predictions_mlp.csv');
+			dataReference = await loadReference('/predictions/dataset_references.csv');
 
 			dataLogistic = await mergeData(dataLogistic, dataReference);
 			dataSVM = await mergeData(dataSVM, dataReference);
 			dataXGBoost = await mergeData(dataXGBoost, dataReference);
 			dataMLP = await mergeData(dataMLP, dataReference);
 
-			dataClassificationReport = await d3.csv('/classification_report_data.csv');
-			dataConfusionMatrix = await d3.csv('/confusion_matrix_data.csv');
+			dataClassificationReport = await d3.csv('/predictions/classification_report_data.csv');
+			dataConfusionMatrix = await d3.csv('/predictions/confusion_matrix_data.csv');
 
-			rocMLP = await d3.csv('/roc_mlp.csv');
+			rocMLP = await d3.csv('/roc/roc_mlp.csv');
 			rocMLP = rocMLP.map((d: any) => parseValuesToFloat(d));
-			rocSVM = await d3.csv('/roc_svm.csv');
+			rocSVM = await d3.csv('/roc/roc_svm.csv');
 			rocSVM = rocSVM.map((d: any) => parseValuesToFloat(d));
-			rocXGBoost = await d3.csv('/roc_xgb.csv');
+			rocXGBoost = await d3.csv('/roc/roc_xgb.csv');
 			rocXGBoost = rocXGBoost.map((d: any) => parseValuesToFloat(d));
-			rocLogistic = await d3.csv('/roc_log_reg.csv');
+			rocLogistic = await d3.csv('/roc/roc_log_reg.csv');
 			rocLogistic = rocLogistic.map((d: any) => parseValuesToFloat(d));
 		};
 

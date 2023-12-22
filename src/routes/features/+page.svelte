@@ -35,8 +35,7 @@
 		// Now load the dataset only ONCE and store it in the variables
 		// to be used in the draw() functions later on and avoid loading
 		// the dataset every time the window is resized (testing purposes especially...)
-		d3.csv('/dataset.csv').then((data) => {
-			console.log('data_original');
+		d3.csv('/dataset/dataset.csv').then((data) => {
 			// Parse the values to float
 			dataOriginal = data.map(parseValuesToFloat);
 
@@ -47,8 +46,7 @@
 
 			drawFeatures();
 		});
-		d3.csv('/dataset_pca.csv').then((data) => {
-			console.log('data_pca loaded');
+		d3.csv('/dataset/dataset_pca.csv').then((data) => {
 			dataPCA = [];
 			let nRows = data.length;
 			for (let i = 0; i < nRows; i++) {
@@ -63,8 +61,7 @@
 
 			drawPCA();
 		});
-		d3.csv('/dataset_tsne.csv').then((data) => {
-			console.log('data_tsne loaded');
+		d3.csv('/dataset/dataset_tsne.csv').then((data) => {
 			dataTSNE = [];
 			let nRows = data.length;
 			for (let i = 0; i < nRows; i++) {
@@ -79,9 +76,7 @@
 
 			drawTSNE();
 		});
-		d3.csv('/dataset_correlation_map.csv').then((data) => {
-			console.log('data_correlation_map');
-
+		d3.csv('/dataset/dataset_correlation_map.csv').then((data) => {
 			dataCorrelationMap = data.map(parseValuesToFloat);
 
 			// remove 1st column of each row

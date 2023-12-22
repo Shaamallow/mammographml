@@ -53,8 +53,8 @@
 		}
 
 		const loadData = async () => {
-			deathData = await preprocess_death_data('/breast_cancer_deaths.csv');
-			worldMap = await d3.json('/worldMap.geojson');
+			deathData = await preprocess_death_data('/map/breast_cancer_deaths.csv');
+			worldMap = await d3.json('/map/worldMap.geojson');
 		};
 
 		loadData().then(() => {
@@ -87,7 +87,6 @@
 
 		let path: any = d3.geoPath().projection(projection);
 
-		console.log(data);
 		// china is max, should remove World, Western Europe and all that are not real countries...
 		let maxValue: number = data.find((d: any) => d.Country == 'China').Deaths as number;
 		let minValue: number = d3.min(data, (d: any) => d.Deaths as number) as number;
