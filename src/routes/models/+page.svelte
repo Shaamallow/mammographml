@@ -7,7 +7,7 @@
 	let divConfusionMatrix: HTMLDivElement;
 	let divROC: HTMLDivElement;
 	let divClassificationReport: HTMLDivElement;
-	let divDecisionBoundaries: HTMLDivElement;
+	let divTestSetResults: HTMLDivElement;
 
 	let currentModel: string = 'No model selected';
 
@@ -22,6 +22,19 @@
 	let dataClassificationReport: any;
 	let dataConfusionMatrix: any;
 
+	// roc data
+	let rocMLP: any;
+	let rocSVM: any;
+	let rocXGBoost: any;
+	let rocLogistic: any;
+
+	let aucValues = {
+		log_reg: 0.998,
+		svm: 0.998,
+		xgb: 0.996,
+		mlp: 0.997
+	};
+	let currentAUC: number = 0;
 	let accuracy: number = 0;
 
 	onMount(() => {
@@ -74,10 +87,6 @@
 			return result;
 		}
 
-		async function loadClassificationReport(path: string) {
-			const data = await d3.csv(path);
-			return data;
-		}
 		async function mergeData(data: any, reference: any) {
 			let result: any = [];
 			for (let i = 0; i < data.length; i++) {
@@ -108,6 +117,15 @@
 
 			dataClassificationReport = await d3.csv('/classification_report_data.csv');
 			dataConfusionMatrix = await d3.csv('/confusion_matrix_data.csv');
+
+			rocMLP = await d3.csv('/roc_mlp.csv');
+			rocMLP = rocMLP.map((d: any) => parseValuesToFloat(d));
+			rocSVM = await d3.csv('/roc_svm.csv');
+			rocSVM = rocSVM.map((d: any) => parseValuesToFloat(d));
+			rocXGBoost = await d3.csv('/roc_xgb.csv');
+			rocXGBoost = rocXGBoost.map((d: any) => parseValuesToFloat(d));
+			rocLogistic = await d3.csv('/roc_log_reg.csv');
+			rocLogistic = rocLogistic.map((d: any) => parseValuesToFloat(d));
 		};
 
 		asyncLoad();
@@ -117,29 +135,135 @@
 
 	function draw(): void {
 		if (currentModel === 'Logistic') {
+			currentAUC = aucValues.log_reg;
 			drawConfusionMatrix('log_reg');
-			drawROC(dataLogistic);
+			drawROC(rocLogistic);
 			drawClassificationReport('log_reg');
 			drawDecisionBoundaries(dataLogistic);
 		} else if (currentModel === 'SVM') {
+			currentAUC = aucValues.svm;
 			drawConfusionMatrix('svm');
-			drawROC(dataSVM);
+			drawROC(rocSVM);
 			drawClassificationReport('svm');
 			drawDecisionBoundaries(dataSVM);
 		} else if (currentModel === 'XGBoost') {
+			currentAUC = aucValues.xgb;
 			drawConfusionMatrix('xgb');
-			drawROC(dataXGBoost);
+			drawROC(rocXGBoost);
 			drawClassificationReport('xgb');
 			drawDecisionBoundaries(dataXGBoost);
 		} else if (currentModel === 'MLP') {
+			currentAUC = aucValues.mlp;
 			drawConfusionMatrix('mlp');
-			drawROC(dataMLP);
+			drawROC(rocMLP);
 			drawClassificationReport('mlp');
 			drawDecisionBoundaries(dataMLP);
 		}
 	}
 
-	function drawROC(data: any): void {}
+	function drawROC(data: any): void {
+		divROC.innerHTML = '';
+
+		let padding = 10;
+		let width = divROC.clientWidth - padding * 2;
+		let height = divROC.clientHeight - padding * 2;
+
+		let margin = 60;
+
+		let min_value_fpr = d3.min(data, (d: any) => d.fpr as number) as number;
+		let max_value_fpr = d3.max(data, (d: any) => d.fpr as number) as number;
+
+		let min_value_tpr = d3.min(data, (d: any) => d.tpr as number) as number;
+		let max_value_tpr = d3.max(data, (d: any) => d.tpr as number) as number;
+
+		let xScale = d3
+			.scaleLinear()
+			.domain([min_value_fpr * 0.9, max_value_fpr * 1.1])
+			.range([margin, width - margin]);
+
+		let yScale = d3
+			.scaleLinear()
+			.domain([min_value_tpr * 0.9, max_value_tpr * 1.1])
+			.range([height - margin, margin]);
+
+		let xAxis = d3.axisBottom(xScale).ticks(5);
+		let yAxis = d3.axisLeft(yScale).ticks(5);
+
+		let svg = d3.select(divROC).append('svg').attr('width', width).attr('height', height);
+
+		svg
+			.append('g')
+			.attr('transform', `translate(0, ${height - margin})`)
+			.call(xAxis);
+		svg
+			.append('text')
+			.attr('x', width / 2)
+			.attr('y', height - margin / 2 + 10)
+			.attr('text-anchor', 'middle')
+			.attr('font-size', '0.8rem')
+			.text('False Positive Rate')
+			.attr('class', 'fill-current');
+
+		svg.append('g').attr('transform', `translate(${margin}, 0)`).call(yAxis);
+
+		svg
+			.append('text')
+			.attr('x', -height / 2)
+			.attr('y', margin / 2 - 8)
+			.attr('text-anchor', 'middle')
+			.attr('transform', 'rotate(-90)')
+			.text('True Positive Rate')
+			.attr('font-size', '0.8rem')
+			.attr('class', 'fill-current');
+
+		let line = d3
+			.line()
+			.x((d: any) => xScale(d.fpr))
+			.y((d: any) => yScale(d.tpr));
+
+		let n = data.length;
+		let linearRange: any = [
+			{ fpr: 0, tpr: 0 },
+			{ fpr: 1, tpr: 1 }
+		];
+
+		// add the line
+		svg
+			.append('path')
+			.datum(data)
+			.attr('fill', 'none')
+			.attr('stroke', 'steelblue')
+			.attr('stroke-width', 2)
+			.attr('d', line);
+
+		svg
+			.append('path')
+			.datum(linearRange)
+			.attr('fill', 'none')
+			.attr('stroke', 'red')
+			.attr('stroke-width', 1)
+			.attr('d', line);
+
+		/// add AUC
+		svg
+			.append('text')
+			.attr('x', width - margin * 2.5)
+			.attr('y', height / 2)
+			.attr('text-anchor', 'middle')
+			.attr('alignment-baseline', 'middle')
+			.attr('class', 'fill-current')
+			.text(`AUC: ${currentAUC.toFixed(3)}`)
+			.attr('font-size', '0.8rem');
+
+		// title
+		svg
+			.append('text')
+			.attr('x', '50%')
+			.attr('y', margin / 2)
+			.text('ROC Curve')
+			.style('text-anchor', 'middle')
+			.attr('class', 'font-display text-3xl font-bold fill-current');
+	}
 	function drawConfusionMatrix(modelName: string): void {
 		divConfusionMatrix.innerHTML = '';
 
@@ -556,12 +680,12 @@
 			.attr('class', 'font-display text-3xl font-bold fill-current');
 	}
 	function drawDecisionBoundaries(data: any): void {
-		divDecisionBoundaries.innerHTML = ''; // equivalent of d3.select(divDecisionBoundaries).html(null) but in svelte;
+		divTestSetResults.innerHTML = ''; // equivalent of d3.select(divDecisionBoundaries).html(null) but in svelte;
 		let padding = 10;
 
 		// draw PCA prediction on div
-		let width = divDecisionBoundaries.clientWidth - padding * 2;
-		let height = divDecisionBoundaries.clientHeight - padding * 2;
+		let width = divTestSetResults.clientWidth - padding * 2;
+		let height = divTestSetResults.clientHeight - padding * 2;
 
 		let margin = 50;
 
@@ -585,7 +709,7 @@
 		const yAxis = d3.axisLeft(yScale);
 
 		const svg = d3
-			.select(divDecisionBoundaries)
+			.select(divTestSetResults)
 			.append('svg')
 			.attr('width', width)
 			.attr('height', height);
@@ -850,11 +974,16 @@
 		<div
 			class="container mx-auto flex flex-col lg:flex-row lg:flew-wrap justify-center items-center gap-5 p-2"
 		>
-			<div
-				class="w-full h-[30rem] bg-neutral rounded-md p-2 pt-5"
-				bind:this={divConfusionMatrix}
-			></div>
-			<div class="w-full h-[30rem] bg-neutral rounded-md p-2 pt-5" bind:this={divROC}></div>
+			<div class="w-full h-[30rem] bg-neutral rounded-md p-2 pt-5" bind:this={divConfusionMatrix}>
+				<div class="h-full flex items-center">
+					<h1 class="text-3xl mx-auto text-center">Confusion Matrix</h1>
+				</div>
+			</div>
+			<div class="w-full h-[30rem] bg-neutral rounded-md p-2 pt-5" bind:this={divROC}>
+				<div class="h-full flex items-center">
+					<h1 class="text-3xl mx-auto text-center">ROC Curve</h1>
+				</div>
+			</div>
 		</div>
 
 		<!-- Classification report and decision boundaries -->
@@ -864,11 +993,16 @@
 			<div
 				class="w-full h-[30rem] bg-neutral rounded-md p-2 pt-5"
 				bind:this={divClassificationReport}
-			></div>
-			<div
-				class="w-full h-[30rem] bg-neutral rounded-md p-2 pt-5"
-				bind:this={divDecisionBoundaries}
-			></div>
+			>
+				<div class="h-full flex items-center">
+					<h1 class="text-3xl mx-auto text-center">Classification Report</h1>
+				</div>
+			</div>
+			<div class="w-full h-[30rem] bg-neutral rounded-md p-2 pt-5" bind:this={divTestSetResults}>
+				<div class="h-full flex items-center">
+					<h1 class="text-3xl mx-auto text-center">Prediction Test Set</h1>
+				</div>
+			</div>
 		</div>
 
 		<!-- PROJECTS FROM HERE -->
